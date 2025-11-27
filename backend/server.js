@@ -11,6 +11,8 @@ const corsOptions = {
   credentials: true,
 };
 app.use(cors(corsOptions));
+app.use("/api/auth", authRoutes);
+app.use("/api/log", logRoutes);
 
 app.use(express.json());
 
@@ -34,9 +36,6 @@ mongoose
     // DB FAILED CONNECTION
     process.exit(1);
   });
-
-app.use("/api/auth", authRoutes);
-app.use("/api/log", logRoutes);
 
 // GET-route
 app.get("/", (req, res) => {
