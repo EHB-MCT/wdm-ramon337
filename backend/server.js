@@ -1,5 +1,7 @@
 const express = require("express");
 const mongoose = require("mongoose");
+const logRoutes = require("./routes/log");
+const authRoutes = require("./routes/auth");
 const app = express();
 
 app.use(express.json());
@@ -24,6 +26,9 @@ mongoose
     // DB FAILED CONNECTION
     process.exit(1);
   });
+
+app.use("/api/auth", authRoutes);
+app.use("/api/log", logRoutes);
 
 // GET-route
 app.get("/", (req, res) => {
