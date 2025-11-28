@@ -1,9 +1,7 @@
-// frontend/planner-frontend/src/components/RegisterForm.jsx
-
 import React, { useState } from "react";
 import { registerUser } from "../api/auth"; // Import API-service
 
-function RegisterForm() {
+function RegisterForm({ onAuthSuccess }) {
   const [formData, setFormData] = useState({
     email: "",
     password: "",

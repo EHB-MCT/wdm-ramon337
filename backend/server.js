@@ -10,11 +10,11 @@ const corsOptions = {
   methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
   credentials: true,
 };
+
+app.use(express.json());
 app.use(cors(corsOptions));
 app.use("/api/auth", authRoutes);
 app.use("/api/log", logRoutes);
-
-app.use(express.json());
 
 const MONGO_URI = process.env.MONGO_URI;
 const PORT = process.env.PORT || 8080;
