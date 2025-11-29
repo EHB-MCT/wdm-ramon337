@@ -1,3 +1,5 @@
+// frontend/planner-frontend/src/api/auth.js
+
 const API_BASE_URL = "http://localhost:8080/api";
 
 export const registerUser = async (userData) => {
@@ -40,7 +42,7 @@ export const fetchUserProfile = async (token) => {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
+        "Authorization": `Bearer ${token}` 
       },
     });
 
@@ -50,5 +52,23 @@ export const fetchUserProfile = async (token) => {
   } catch (error) {
     console.error("Error fetching profile:", error);
     throw error;
+  }
+};
+
+export const checkEmailExists = async (email) => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/auth/check-email`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email }),
+    });
+    
+    const data = await response.json();
+    if (!response.ok) return false; 
+    
+    return data.exists;
+  } catch (error) {
+    console.error("Email check failed:", error);
+    return false; 
   }
 };

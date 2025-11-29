@@ -1,3 +1,5 @@
+// backend/routes/auth.js
+
 const express = require("express");
 const router = express.Router();
 const bcrypt = require("bcrypt");
@@ -7,12 +9,21 @@ const authMiddleware = require("../middleware/auth");
 
 const JWT_SECRET = "RamonDev5";
 
+// --- 1. Check Email ---
+router.post("/check-email", async (req, res) => {
+  try {
+    const { email } = req.body;
+    const user = await User.findOne({ email });
+    res.json({ exists: !!user });
+  } catch (error) {
+    console.error("Check email error:", error);
+    res.status(500).send({ message: "Server check failed" });
+  }
+});
+
+// --- 2. Register ---
 router.post("/register", async (req, res) => {
-  const { 
-    email, password, timezone, 
-    workHours, sleepHours, 
-    location, commuteTime, flexibility, hobbies 
-  } = req.body;
+  const { email, password, timezone, workHours, sleepHours, location, commuteTime, flexibility, hobbies } = req.body;
 
   if (!email || !password) {
     return res.status(400).send({ message: "Email and password are required." });
@@ -23,22 +34,20 @@ router.post("/register", async (req, res) => {
     if (user) {
       return res.status(400).send({ message: "User already exists." });
     }
-
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    // Creëer de user met de uitgebreide structuur
     user = new User({
       email,
       password: hashedPassword,
       timezone: timezone || "Europe/Brussels",
-      initialPreferences: { 
-        workHours, 
+      initialPreferences: {
+        workHours,
         sleepHours,
         location,
         commuteTime,
         flexibility,
-        hobbies // Dit moet een array zijn
+        hobbies,
       },
     });
 
@@ -57,7 +66,7 @@ router.post("/register", async (req, res) => {
   }
 });
 
-// --- POST /api/auth/login ---
+// --- 3. Login ---
 router.post("/login", async (req, res) => {
   const { email, password } = req.body;
 
@@ -85,11 +94,13 @@ router.post("/login", async (req, res) => {
   }
 });
 
-// --- GET /api/auth/me ---
+// --- 4. Get Profile ---
 router.get("/me", authMiddleware, async (req, res) => {
   try {
     const user = await User.findOne({ uid: req.user.uid }).select("-password");
+
     if (!user) return res.status(404).json({ message: "User not found" });
+
     res.json(user);
   } catch (error) {
     console.error(error);
