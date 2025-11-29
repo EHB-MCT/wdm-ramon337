@@ -68,7 +68,7 @@ function Onboarding() {
   };
 
   return (
-    <div style={{ maxWidth: '500px', margin: '50px auto', padding: '20px', border: '1px solid #ddd', borderRadius: '8px' }}>
+    <div className="wizard-container">
       <h2>Setup Profile - Step {step} / 3</h2>
       
       {error && <p style={{ color: 'red' }}>{error}</p>}

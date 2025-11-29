@@ -7,8 +7,8 @@ import LoginPage from "./pages/LoginPage";
 import DashboardPage from "./pages/DashboardPage";
 import ProfilePage from "./pages/ProfilePage";
 import NotFoundPage from "./pages/NotFoundPage";
-import RegisterForm from "./components/Onboarding";
 import DataTracker from "./components/DataTracker";
+import RegisterPage from "./pages/RegisterPage"
 
 const ProtectedRoute = ({ children }) => {
   const token = localStorage.getItem("userToken");
@@ -46,7 +46,7 @@ function App() {
 
           <Route path="/login" element={<LoginPage />} />
 
-          <Route path="/register" element={<RegisterForm />} />
+          <Route path="/register" element={<RegisterPage />} />
 
           <Route
             path="/planner"

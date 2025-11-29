@@ -4,7 +4,7 @@ function WeekPlanner() {
   const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
   return (
-    <div style={{ display: 'flex', gap: '10px', overflowX: 'auto', paddingBottom: '20px' }}>
+    <div className="planner-grid">
       {days.map(day => (
         <div key={day} style={{ 
           minWidth: '150px', 
