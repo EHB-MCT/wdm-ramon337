@@ -3,6 +3,7 @@ const router = express.Router();
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
+const authMiddleware = require("../middleware/auth");
 
 const JWT_SECRET = "RamonDev5";
 
@@ -45,6 +46,7 @@ router.post("/register", async (req, res) => {
   }
 });
 
+// --- POST /api/auth/login ---
 router.post("/login", async (req, res) => {
   const { email, password } = req.body;
 
@@ -54,13 +56,11 @@ router.post("/login", async (req, res) => {
       return res.status(400).send({ message: "Invalid Credentials." });
     }
 
-    // 1. Controleer het wachtwoord
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       return res.status(400).send({ message: "Invalid Credentials." });
     }
 
-    // 2. Genereer een nieuwe JWT met de UID
     const token = jwt.sign({ uid: user.uid }, JWT_SECRET, { expiresIn: "1d" });
 
     res.json({
@@ -71,6 +71,21 @@ router.post("/login", async (req, res) => {
   } catch (error) {
     console.error("Error during user login:", error);
     res.status(500).send({ message: "Server error during login.", details: error.message });
+  }
+});
+
+router.get("/me", authMiddleware, async (req, res) => {
+  try {
+    const user = await User.findOne({ uid: req.user.uid }).select("-password");
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    res.json(user);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Server error fetching profile" });
   }
 });
 

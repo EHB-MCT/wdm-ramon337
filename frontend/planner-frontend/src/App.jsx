@@ -1,14 +1,14 @@
-// src/App.jsx
-import React from "react";
-import { BrowserRouter as Router, Routes, Route, Link, Navigate } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 
+import Navbar from "./components/Navbar";
 import LandingPage from "./pages/LandingPage";
 import LoginPage from "./pages/LoginPage";
 import DashboardPage from "./pages/DashboardPage";
 import ProfilePage from "./pages/ProfilePage";
 import NotFoundPage from "./pages/NotFoundPage";
-
 import RegisterForm from "./components/RegisterForm";
+import DataTracker from "./components/DataTracker";
 
 const ProtectedRoute = ({ children }) => {
   const token = localStorage.getItem("userToken");
@@ -19,32 +19,35 @@ const ProtectedRoute = ({ children }) => {
 };
 
 function App() {
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  useEffect(() => {
+    const token = localStorage.getItem("userToken");
+    setIsLoggedIn(!!token);
+  }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem("userToken");
+    localStorage.removeItem("userUID");
+    setIsLoggedIn(false);
+
+    window.location.href = "/";
+  };
+
   return (
     <Router>
       <div className="App">
-        {/* navigation */}
-        <nav style={{ padding: "10px", background: "#eee", marginBottom: "20px" }}>
-          <Link to="/" style={{ marginRight: "10px" }}>
-            Home
-          </Link>
-          <Link to="/planner" style={{ marginRight: "10px" }}>
-            Planner
-          </Link>
-          <Link to="/profile" style={{ marginRight: "10px" }}>
-            Profile
-          </Link>
-          <Link to="/login" style={{ marginRight: "10px" }}>
-            Login
-          </Link>
-          <Link to="/register">Register</Link>
-        </nav>
+        {isLoggedIn && <DataTracker />}
 
-        {/* De Routes Definition */}
+        <Navbar isLoggedIn={isLoggedIn} onLogout={handleLogout} />
+
         <Routes>
-          {/* Public Routes */}
           <Route path="/" element={<LandingPage />} />
+
           <Route path="/login" element={<LoginPage />} />
-          <Route path="/register" element={<RegisterForm onAuthSuccess={() => (window.location.href = "/planner")} />} />
+
+          <Route path="/register" element={<RegisterForm />} />
+
           <Route
             path="/planner"
             element={
@@ -62,7 +65,6 @@ function App() {
             }
           />
 
-          {/* 404 Route */}
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </div>

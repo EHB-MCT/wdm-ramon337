@@ -1,45 +1,82 @@
-import React from 'react';
-import { NavLink, useNavigate } from 'react-router-dom';
+import React from "react";
+import { NavLink } from "react-router-dom";
 
-function Navbar() {
-  const navigate = useNavigate();
-  const isLoggedIn = !!localStorage.getItem('userToken');
-
-  const handleLogout = () => {
-    localStorage.removeItem('userToken');
-    localStorage.removeItem('userUID');
-    navigate('/login');
-    window.location.reload();
-  };
-
+function Navbar({ isLoggedIn, onLogout }) {
   const navStyle = {
-    padding: '15px',
-    background: '#f4f4f4',
-    marginBottom: '20px',
-    display: 'flex',
-    gap: '20px',
-    alignItems: 'center'
+    padding: "15px",
+    background: "#333",
+    color: "white",
+    marginBottom: "20px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
   };
+
+  const linkStyle = {
+    color: "white",
+    textDecoration: "none",
+    marginRight: "15px",
+    fontWeight: "bold",
+  };
+
+  const activeStyle = {
+    textDecoration: "underline",
+    color: "#4caf50",
+  };
+
+  const getLinkClass = ({ isActive }) => (isActive ? { ...linkStyle, ...activeStyle } : linkStyle);
 
   return (
     <nav style={navStyle}>
-      <NavLink to="/" style={{ fontWeight: 'bold', textDecoration: 'none' }}>Home</NavLink>
-      
-      {isLoggedIn && (
-        <>
-          <NavLink to="/planner" style={{ textDecoration: 'none' }}>Planner</NavLink>
-          <NavLink to="/profile" style={{ textDecoration: 'none' }}>Profile</NavLink>
-        </>
-      )}
+      <div className="nav-left">
+        <NavLink to="/" style={getLinkClass}>
+          Weapon of Math Destruction
+        </NavLink>
 
-      <div style={{ marginLeft: 'auto', display: 'flex', gap: '15px' }}>
+        {isLoggedIn && (
+          <>
+            <span style={{ margin: "0 10px", color: "#666" }}>|</span>
+            <NavLink to="/planner" style={getLinkClass}>
+              My Planner
+            </NavLink>
+            <NavLink to="/profile" style={getLinkClass}>
+              Profile
+            </NavLink>
+          </>
+        )}
+      </div>
+
+      <div className="nav-right">
         {!isLoggedIn ? (
           <>
-            <NavLink to="/login" style={{ textDecoration: 'none' }}>Login</NavLink>
-            <NavLink to="/register" style={{ textDecoration: 'none' }}>Register</NavLink>
+            <NavLink to="/login" style={getLinkClass}>
+              Login
+            </NavLink>
+            <NavLink
+              to="/register"
+              style={{
+                ...linkStyle,
+                background: "#4caf50",
+                padding: "8px 15px",
+                borderRadius: "5px",
+              }}
+            >
+              Register
+            </NavLink>
           </>
         ) : (
-          <button onClick={handleLogout} style={{ background: 'red', color: 'white', border: 'none', padding: '5px 10px', cursor: 'pointer' }}>
+          <button
+            onClick={onLogout}
+            style={{
+              background: "#e53935",
+              color: "white",
+              border: "none",
+              padding: "8px 15px",
+              borderRadius: "5px",
+              cursor: "pointer",
+              fontWeight: "bold",
+            }}
+          >
             Logout
           </button>
         )}
