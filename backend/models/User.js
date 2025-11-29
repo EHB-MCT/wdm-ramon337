@@ -1,5 +1,3 @@
-// backend/models/User.js
-
 const mongoose = require('mongoose');
 
 const UserSchema = new mongoose.Schema({
@@ -25,7 +23,15 @@ const UserSchema = new mongoose.Schema({
   initialPreferences: {
     workHours: { type: Number, default: 40 },
     sleepHours: { type: Number, default: 8 },
-    flexibilityGoal: { type: Number, default: 5 }, 
+    
+    location: { type: String, default: '' },
+    commuteTime: { type: Number, default: 0 }, // in minutes
+    flexibility: { type: Number, min: 1, max: 10, default: 5 },
+    
+    hobbies: [{
+        name: { type: String },
+        frequency: { type: String }
+    }]
   },
   createdAt: {
     type: Date,

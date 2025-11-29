@@ -1,10 +1,9 @@
 const API_BASE_URL = "http://localhost:8080/api";
 
 /**
- * Verstuurt een willekeurig gedragsevent naar de backend.
- * @param {string} eventType - Type actie (bv. 'TASK_MOVED', 'HOVER').
- * @param {object} payload - Specifieke data van de actie (bv. coördinaten, duur).
- * @param {object} meta - Optionele metadata (bv. schermgrootte).
+ * @param {string} eventType - Type of event (bv. 'TASK_MOVED', 'HOVER').
+ * @param {object} payload - Specific data (bv. coördinaten, duur).
+ * @param {object} meta - Optional metadata (bv. schermgrootte).
  */
 
 export const logEvent = async (eventType, payload = {}, meta = {}) => {

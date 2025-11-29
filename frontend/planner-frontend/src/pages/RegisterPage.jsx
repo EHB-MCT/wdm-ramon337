@@ -1,11 +1,11 @@
 import React from 'react';
-import RegisterForm from '../components/RegisterForm';
+import Onboarding from '../components/Onboarding';
 
 function RegisterPage() {
   return (
     <div style={{ marginTop: '50px' }}>
       <h2 style={{ textAlign: 'center' }}>Create a new account</h2>
-      <RegisterForm />
+      <Onboarding />
     </div>
   );
 }
