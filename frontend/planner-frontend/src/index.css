@@ -240,3 +240,16 @@ button.btn-secondary {
   font-weight: bold;
   color: var(--primary-color);
 }
+
+.draggable-item {
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.draggable-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.planner-wrapper {
+    max-width: 100%;
+}
