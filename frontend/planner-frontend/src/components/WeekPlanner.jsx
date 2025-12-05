@@ -8,6 +8,7 @@ import { Droppable } from "./Droppable";
 const HOURS = Array.from({ length: 15 }, (_, i) => i + 8);
 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 const ROW_HEIGHT = 60;
+
 const COLORS = [
   { bg: "#e3f2fd", border: "#2196f3" }, // Blauw
   { bg: "#ffecd1", border: "orange" }, // Oranje
@@ -16,7 +17,6 @@ const COLORS = [
   { bg: "#f3e5f5", border: "#9c27b0" }, // Paars
 ];
 
-// Helper voor overlap
 const checkOverlap = (targetDay, targetHour, itemDuration, currentItemId, placements, allItems) => {
   for (const [placedItemId, placedSlotId] of Object.entries(placements)) {
     if (placedItemId === currentItemId) continue;
@@ -39,7 +39,6 @@ function WeekPlanner() {
   const [activeId, setActiveId] = useState(null);
   const [error, setError] = useState(null);
 
-  // MODAL STATES
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
   const [formData, setFormData] = useState({ name: "", duration: 1, colorIndex: 0 });
@@ -52,7 +51,6 @@ function WeekPlanner() {
         const prefs = data.initialPreferences;
         let generatedItems = [];
 
-        // Hobbies
         if (prefs.hobbies) {
           prefs.hobbies.forEach((hobby, index) => {
             const freq = Number(hobby.frequency) || 1;
@@ -70,7 +68,6 @@ function WeekPlanner() {
           });
         }
 
-        // Work blocks
         let hoursLeft = prefs.workHours || 40;
         let workIndex = 0;
         while (hoursLeft > 0) {
@@ -96,8 +93,6 @@ function WeekPlanner() {
     loadData();
   }, []);
 
-  // --- CRUD HANDLERS ---
-
   const openCreateModal = () => {
     setFormData({ name: "", duration: 1, colorIndex: 0 });
     setShowCreateModal(true);
@@ -117,9 +112,7 @@ function WeekPlanner() {
       borderColor: color.border,
     };
 
-    // NIEUW: Zet nieuwe items VOORAAN de lijst (bovenaan in inbox)
     setAllItems([newItem, ...allItems]);
-
     logEvent("TASK_CREATED", { name: newItem.name });
     setShowCreateModal(false);
   };
@@ -136,14 +129,11 @@ function WeekPlanner() {
     logEvent("TASK_DELETED", { itemId });
   };
 
-  // OPEN EDIT MODAL
   const openEditModal = (item, e) => {
-    // CRUCIAAL: Stop event propagation zodat we niet gaan slepen
     if (e) {
       e.stopPropagation();
       e.preventDefault();
     }
-
     const cIndex = COLORS.findIndex((c) => c.bg === item.color);
     setFormData({
       name: item.name,
@@ -156,7 +146,6 @@ function WeekPlanner() {
   const handleEditSubmit = (e) => {
     e.preventDefault();
     const color = COLORS[formData.colorIndex];
-
     const updatedItem = {
       ...editingItem,
       name: formData.name,
@@ -164,13 +153,11 @@ function WeekPlanner() {
       color: color.bg,
       borderColor: color.border,
     };
-
     setAllItems(allItems.map((i) => (i.id === editingItem.id ? updatedItem : i)));
     setEditingItem(null);
     logEvent("TASK_EDITED", { itemId: editingItem.id });
   };
 
-  // --- DRAG HANDLERS ---
   const handleDragStart = (event) => setActiveId(event.active.id);
 
   const handleDragEnd = (event) => {
@@ -193,8 +180,6 @@ function WeekPlanner() {
       const hasOverlap = checkOverlap(targetDay, targetHour, item.duration, itemId, placements, allItems);
 
       if (hasOverlap) {
-        setError("Overlap detected!");
-        setTimeout(() => setError(null), 2000);
         return;
       }
 
@@ -211,16 +196,9 @@ function WeekPlanner() {
 
   if (loading) return <div className="page-container">Loading...</div>;
 
-  // --- ITEM COMPONENT ---
-  const ItemComponent = ({ item, isOverlay, isInInbox }) => {
-    // Als het in de inbox zit, gebruiken we compacte styling (45px hoog)
-    // Als het in de planner zit (of overlay), gebruiken we de echte tijdsduur.
-    const height =
-      isInInbox && !isOverlay
-        ? "auto" // Laat CSS (.inbox-item) de hoogte bepalen
-        : `${item.duration * ROW_HEIGHT - 4}px`;
+  const ItemComponent = ({ item, isOverlay, isInInbox, onClick }) => {
+    const height = isInInbox && !isOverlay ? "auto" : `${item.duration * ROW_HEIGHT - 4}px`;
 
-    // Bepaal welke classes we gebruiken
     const containerClass = isInInbox && !isOverlay ? "item-container inbox-item" : "item-container";
 
     return (
@@ -234,13 +212,11 @@ function WeekPlanner() {
           zIndex: 20,
           position: "relative",
           boxSizing: "border-box",
-          // In rooster: padding 5px. In inbox: wordt geregeld door CSS class
           padding: isInInbox && !isOverlay ? "" : "5px",
         }}
+        onClick={onClick}
       >
         <strong>{item.name}</strong>
-
-        {/* Toon tijdsduur badge */}
         <span
           className="duration-badge"
           style={{
@@ -252,12 +228,10 @@ function WeekPlanner() {
           {item.duration}h
         </span>
 
-        {/* EDIT BUTTON (Potloodje) */}
         <button className="edit-btn" title="Edit" onPointerDown={(e) => e.stopPropagation()} onClick={(e) => openEditModal(item, e)}>
           ✎
         </button>
 
-        {/* DELETE BUTTON (Kruisje) */}
         <button className="delete-btn" title="Delete" onPointerDown={(e) => e.stopPropagation()} onClick={(e) => handleDelete(item.id, e)}>
           ✕
         </button>
@@ -265,7 +239,6 @@ function WeekPlanner() {
     );
   };
 
-  // --- MODAL FORM ---
   const renderModalForm = (onSubmit, title, cancelAction) => (
     <div className="modal-overlay">
       <div className="modal-content">
@@ -273,17 +246,14 @@ function WeekPlanner() {
         <form onSubmit={onSubmit}>
           <label>Name</label>
           <input type="text" value={formData.name} required onChange={(e) => setFormData({ ...formData, name: e.target.value })} />
-
           <label>Duration (hours)</label>
           <input type="number" min="0.5" max="8" step="0.5" value={formData.duration} required onChange={(e) => setFormData({ ...formData, duration: e.target.value })} />
-
           <label>Color</label>
           <div className="color-options">
             {COLORS.map((c, i) => (
               <div key={i} className={`color-swatch ${formData.colorIndex === i ? "selected" : ""}`} style={{ background: c.bg, borderColor: c.border }} onClick={() => setFormData({ ...formData, colorIndex: i })} />
             ))}
           </div>
-
           <div className="modal-actions">
             <button type="button" className="btn-secondary" onClick={cancelAction}>
               Cancel
@@ -299,11 +269,18 @@ function WeekPlanner() {
 
   return (
     <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-      <div className="planner-wrapper" style={{ display: "flex", gap: "20px", height: "85vh", flexDirection: "column" }}>
+      <div
+        className="planner-wrapper"
+        style={{
+          display: "flex",
+          gap: "20px",
+          height: "calc(100vh - 120px)",
+          flexDirection: "column",
+        }}
+      >
         {error && <div style={{ background: "#ffebee", color: "#c62828", padding: "10px", textAlign: "center", fontWeight: "bold" }}>{error}</div>}
 
         <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
-          {/* --- ROOSTER --- */}
           <div className="planner-main" style={{ flex: 4, display: "flex", flexDirection: "column", overflowY: "auto" }}>
             <div className="schedule-header">
               <div className="header-cell">Time</div>
@@ -326,7 +303,7 @@ function WeekPlanner() {
                         <div className="time-slot">
                           {itemInSlot && (
                             <Draggable id={itemInSlot.id} data={itemInSlot}>
-                              <ItemComponent item={itemInSlot} isOverlay={false} isInInbox={false} />
+                              <ItemComponent item={itemInSlot} isOverlay={false} isInInbox={false} onClick={() => openEditModal(itemInSlot)} />
                             </Draggable>
                           )}
                         </div>
@@ -338,25 +315,44 @@ function WeekPlanner() {
             </div>
           </div>
 
-          {/* --- SIDEBAR --- */}
-          <div className="planner-sidebar" style={{ flex: 1, display: "flex", flexDirection: "column", marginLeft: "20px" }}>
-            {/* BIG CREATE BUTTON */}
-            <button className="add-task-btn" onClick={openCreateModal} title="Create Task">
-              {" "}
-              +{" "}
-            </button>
-
+          <div className="planner-sidebar" style={{ flex: 1, display: "flex", flexDirection: "column", marginLeft: "20px", height: "100%" }}>
             <Droppable id="inbox">
-              <div style={{ background: "white", padding: "15px", height: "100%", overflowY: "auto", borderRadius: "8px", boxShadow: "0 4px 6px rgba(0,0,0,0.1)" }}>
-                <h3>Inbox ({inboxItems.length})</h3>
-                <hr />
-                <div style={{ display: "flex", flexDirection: "column", gap: "5px" }}>
+              <div
+                style={{
+                  background: "white",
+                  padding: "20px",
+                  height: "100%",
+                  overflowY: "auto",
+                  borderRadius: "12px",
+                  boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
+                  display: "flex",
+                  flexDirection: "column",
+                }}
+              >
+                {/* HIER ZIT DE NIEUWE HEADER MET DE KNOP */}
+                <div className="sidebar-header">
+                  <h3>
+                    Inbox <span style={{ fontSize: "0.8em", color: "#999", fontWeight: "normal" }}>({inboxItems.length})</span>
+                  </h3>
+                  <button className="add-btn-small" onClick={openCreateModal} title="Create Task">
+                    +
+                  </button>
+                </div>
+
+                <div style={{ display: "flex", flexDirection: "column", gap: "8px", flex: 1 }}>
                   {inboxItems.map((item) => (
                     <Draggable key={item.id} id={item.id} data={item}>
-                      {/* HIER ZEGGEN WE DAT HET EEN INBOX ITEM IS */}
-                      <ItemComponent item={item} isOverlay={false} isInInbox={true} />
+                      <ItemComponent item={item} isOverlay={false} isInInbox={true} onClick={() => openEditModal(item)} />
                     </Draggable>
                   ))}
+
+                  {inboxItems.length === 0 && (
+                    <div style={{ marginTop: "20px", textAlign: "center", color: "#aaa", border: "2px dashed #eee", padding: "20px", borderRadius: "8px" }}>
+                      Inbox empty.
+                      <br />
+                      <small>Create a task or drag back here.</small>
+                    </div>
+                  )}
                 </div>
               </div>
             </Droppable>
@@ -364,15 +360,12 @@ function WeekPlanner() {
         </div>
       </div>
 
-      {/* MODALS */}
       {showCreateModal && renderModalForm(handleCreateSubmit, "New Task", () => setShowCreateModal(false))}
       {editingItem && renderModalForm(handleEditSubmit, "Edit Task", () => setEditingItem(null))}
 
-      {/* DRAG OVERLAY */}
       <DragOverlay>
         {activeId ? (
           <div style={{ width: "140px", opacity: 0.9 }}>
-            {/* Overlay is nooit 'inbox', want je sleept hem. Hij moet ware grootte hebben. */}
             <ItemComponent item={allItems.find((i) => i.id === activeId)} isOverlay={true} isInInbox={false} />
           </div>
         ) : null}

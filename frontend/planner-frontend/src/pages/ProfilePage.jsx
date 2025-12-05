@@ -26,7 +26,7 @@ function ProfilePage() {
   if (!user) return <p>Geen data gevonden. Ben je ingelogd?</p>;
 
   return (
-    <div style={{ padding: "20px" }}>
+    <div style={{ padding: '0px 20px' }}>
       <h1>Welkom, {user.email}</h1>
       <p>Je doel is om {user.initialPreferences.workHours} uur te werken per week.</p>
     </div>
