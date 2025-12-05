@@ -1,0 +1,179 @@
+/* --- PLANNER LAYOUT --- */
+.planner-wrapper {
+  max-width: 100%;
+}
+
+/* --- SCHEDULE GRID --- */
+.schedule-grid {
+  display: grid;
+  grid-template-columns: 60px repeat(7, 1fr);
+  gap: 1px;
+  background-color: #ddd;
+  border: 1px solid #ddd;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.schedule-header {
+  display: grid;
+  grid-template-columns: 60px repeat(7, 1fr);
+  gap: 1px;
+  background: #eee;
+  padding-bottom: 1px;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.header-cell {
+  background: #f8f9fa;
+  padding: 10px;
+  text-align: center;
+  font-weight: bold;
+}
+
+.time-slot {
+  background: white;
+  height: 60px;
+  position: relative;
+  border-bottom: 1px solid #f0f0f0;
+  box-sizing: border-box;
+}
+
+.time-slot:hover { background: #f1f8ff; }
+
+.time-label {
+  background: #f8f9fa;
+  padding: 5px;
+  font-size: 0.8rem;
+  text-align: right;
+  color: #666;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end;
+}
+
+/* --- ITEMS & TASKS --- */
+.item-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.scheduled-task {
+  position: absolute;
+  top: 1px; left: 1px; right: 1px;
+  padding: 5px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  overflow: hidden;
+  cursor: grab;
+  z-index: 10;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.draggable-item {
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.draggable-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* --- INBOX SPECIFICS --- */
+.inbox-item {
+  height: 45px !important; 
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 10px !important;
+  margin-bottom: 5px;
+  overflow: hidden;
+}
+
+.inbox-item strong {
+  font-size: 0.85rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.inbox-item .duration-badge {
+  font-size: 0.7rem;
+  background: rgba(0,0,0,0.1);
+  padding: 2px 6px;
+  border-radius: 10px;
+  margin-left: 5px;
+}
+
+.planner-sidebar {
+  max-height: 600px;
+}
+.sidebar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+  border-bottom: 2px solid #f0f0f0;
+  padding-bottom: 10px;
+}
+
+.sidebar-header h3 {
+  margin: 0;
+  font-size: 1.2rem;
+}
+
+/* --- SMALL ADD BUTTON (NIEUW) --- */
+.add-btn-small {
+  background-color: var(--accent-color);
+  color: white;
+  border: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  font-size: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.1s;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.add-btn-small:hover {
+  background-color: #388e3c;
+  transform: scale(1.05);
+}
+
+/* --- ACTION BUTTONS (Edit/Delete) --- */
+.delete-btn, .edit-btn {
+  position: absolute;
+  top: -5px;
+  width: 20px;
+  height: 20px;
+  color: white;
+  border-radius: 50%;
+  border: 2px solid white;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  cursor: pointer;
+  z-index: 100;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.delete-btn { right: -5px; background: red; font-weight: bold; }
+.edit-btn { right: 18px; background: #2196f3; }
+
+.edit-btn:hover { background: #1976d2; z-index: 1000; }
+.delete-btn:hover { background: #c62828; z-index: 1000; }
+
+.item-container:hover .delete-btn,
+.item-container:hover .edit-btn {
+  display: flex;
+}
