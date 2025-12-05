@@ -30,7 +30,8 @@ const UserSchema = new mongoose.Schema({
     
     hobbies: [{
         name: { type: String },
-        frequency: { type: String }
+        frequency: { type: Number },
+        duration: { type: Number, default: 1 }
     }]
   },
   createdAt: {
