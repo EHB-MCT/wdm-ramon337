@@ -106,7 +106,40 @@ function ProfilePage() {
           </div>
         </div>
 
-        
+        {/* KOLOM 2: HOBBIES & INFO */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            
+            <div className="profile-card">
+              <h3>Your Interests</h3>
+              {prefs.hobbies && prefs.hobbies.length > 0 ? (
+                <div className="hobby-list">
+                  {prefs.hobbies.map((h, i) => (
+                    <div key={i} className="hobby-tag">
+                      <strong>{h.name}</strong> 
+                      <span style={{opacity: 0.7, fontSize: '0.8em', marginLeft: '5px'}}>
+                        ({h.frequency}x/wk, {h.duration}h)
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p style={{ color: '#999', fontStyle: 'italic' }}>No hobbies added yet.</p>
+              )}
+            </div>
+
+            <div className="profile-card">
+                <h3>⚙️ Account Details</h3>
+                <div className="stat-row">
+                    <span className="stat-label">Timezone</span>
+                    <span className="stat-val">{user.timezone}</span>
+                </div>
+                <div className="stat-row">
+                    <span className="stat-label">Member Since</span>
+                    <span className="stat-val">{new Date(user.createdAt || Date.now()).toLocaleDateString()}</span>
+                </div>
+            </div>
+
+        </div>
 
       </div>
     </div>

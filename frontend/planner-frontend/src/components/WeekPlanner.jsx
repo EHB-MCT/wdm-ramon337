@@ -10,11 +10,11 @@ const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 const ROW_HEIGHT = 60;
 
 const COLORS = [
-  { bg: "#e3f2fd", border: "#2196f3" }, // Blauw
-  { bg: "#ffecd1", border: "orange" }, // Oranje
-  { bg: "#e8f5e9", border: "#4caf50" }, // Groen
-  { bg: "#ffebee", border: "#e53935" }, // Rood
-  { bg: "#f3e5f5", border: "#9c27b0" }, // Paars
+  { bg: "#e3f2fd", border: "#2196f3" },
+  { bg: "#ffecd1", border: "orange" },
+  { bg: "#e8f5e9", border: "#4caf50" },
+  { bg: "#ffebee", border: "#e53935" },
+  { bg: "#f3e5f5", border: "#9c27b0" },
 ];
 
 const checkOverlap = (targetDay, targetHour, itemDuration, currentItemId, placements, allItems) => {
