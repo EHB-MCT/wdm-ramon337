@@ -41,12 +41,12 @@ function WeekPlanner() {
 
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
-  
-  const [formData, setFormData] = useState({ 
-    name: "", 
-    duration: 1, 
-    colorIndex: 0, 
-    location: "" 
+
+  const [formData, setFormData] = useState({
+    name: "",
+    duration: 1,
+    colorIndex: 0,
+    location: "",
   });
 
   useEffect(() => {
@@ -55,6 +55,9 @@ function WeekPlanner() {
       try {
         const data = await fetchUserProfile(token);
         const prefs = data.initialPreferences;
+        if (data.placements) {
+          setPlacements(data.placements);
+        }
         let generatedItems = [];
 
         if (prefs.hobbies) {
@@ -69,7 +72,7 @@ function WeekPlanner() {
                 type: "HOBBY",
                 color: "#e3f2fd",
                 borderColor: "#2196f3",
-                location: hobby.location || ""
+                location: hobby.location || "",
               });
             }
           });
@@ -86,7 +89,7 @@ function WeekPlanner() {
             type: "WORK",
             color: "#ffecd1",
             borderColor: "orange",
-            location: prefs.location || "Office"
+            location: prefs.location || "Office",
           });
           hoursLeft -= blockDuration;
           workIndex++;
@@ -118,7 +121,7 @@ function WeekPlanner() {
       type: "CUSTOM",
       color: color.bg,
       borderColor: color.border,
-      location: formData.location || ""
+      location: formData.location || "",
     };
 
     setAllItems([newItem, ...allItems]);
@@ -135,6 +138,7 @@ function WeekPlanner() {
     const newPlacements = { ...placements };
     delete newPlacements[itemId];
     setPlacements(newPlacements);
+    savePlacementsToBackend(newPlacements);
     logEvent("TASK_DELETED", { itemId });
   };
 
@@ -148,7 +152,7 @@ function WeekPlanner() {
       name: item.name,
       duration: item.duration,
       colorIndex: cIndex !== -1 ? cIndex : 0,
-      location: item.location || ""
+      location: item.location || "",
     });
     setEditingItem(item);
   };
@@ -162,7 +166,7 @@ function WeekPlanner() {
       duration: Number(formData.duration),
       color: color.bg,
       borderColor: color.border,
-      location: formData.location
+      location: formData.location,
     };
     setAllItems(allItems.map((i) => (i.id === editingItem.id ? updatedItem : i)));
     setEditingItem(null);
@@ -170,6 +174,22 @@ function WeekPlanner() {
   };
 
   const handleDragStart = (event) => setActiveId(event.active.id);
+
+  const savePlacementsToBackend = async (newPlacements) => {
+    try {
+      const token = localStorage.getItem("userToken");
+      await fetch("http://localhost:8080/api/auth/schedule", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ placements: newPlacements }),
+      });
+    } catch (err) {
+      console.error("Failed to save schedule:", err);
+    }
+  };
 
   const handleDragEnd = (event) => {
     const { active, over } = event;
@@ -184,6 +204,7 @@ function WeekPlanner() {
       const newPlacements = { ...placements };
       delete newPlacements[itemId];
       setPlacements(newPlacements);
+      savePlacementsToBackend(newPlacements);
       logEvent("TASK_MOVED", { itemId, target: "inbox" });
     } else {
       const [targetDay, targetHourStr] = targetId.split("-");
@@ -194,13 +215,15 @@ function WeekPlanner() {
         return;
       }
 
-      setPlacements((prev) => ({ ...prev, [itemId]: targetId }));
-      logEvent("TASK_SCHEDULED", { 
-        itemId, 
-        day: targetDay, 
-        hour: targetHour, 
+      const newPlacements = { ...placements, [itemId]: targetId };
+      setPlacements(newPlacements);
+      savePlacementsToBackend(newPlacements);
+      logEvent("TASK_SCHEDULED", {
+        itemId,
+        day: targetDay,
+        hour: targetHour,
         name: item.name,
-        location: item.location 
+        location: item.location,
       });
     }
   };
@@ -232,23 +255,25 @@ function WeekPlanner() {
           display: "flex",
           flexDirection: "column",
           justifyContent: "center",
-          overflow: "hidden"
+          overflow: "hidden",
         }}
         onClick={onClick}
       >
-        <div style={{ fontWeight: 'bold', lineHeight: '1.2' }}>{item.name}</div>
-        
+        <div style={{ fontWeight: "bold", lineHeight: "1.2" }}>{item.name}</div>
+
         {item.location && (
-            <div style={{ 
-                fontSize: "0.75rem", 
-                opacity: 0.8, 
-                marginTop: "2px",
-                whiteSpace: "nowrap",
-                overflow: "hidden",
-                textOverflow: "ellipsis"
-            }}>
-                📍 {item.location}
-            </div>
+          <div
+            style={{
+              fontSize: "0.75rem",
+              opacity: 0.8,
+              marginTop: "2px",
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+            }}
+          >
+            📍 {item.location}
+          </div>
         )}
 
         <span
@@ -283,18 +308,13 @@ function WeekPlanner() {
         <form onSubmit={onSubmit}>
           <label>Name</label>
           <input type="text" value={formData.name} required onChange={(e) => setFormData({ ...formData, name: e.target.value })} />
-          
+
           <label>Location (Optional)</label>
-          <input 
-            type="text" 
-            placeholder="Where? (e.g. Office, Gym)"
-            value={formData.location} 
-            onChange={(e) => setFormData({ ...formData, location: e.target.value })} 
-          />
+          <input type="text" placeholder="Where? (e.g. Office, Gym)" value={formData.location} onChange={(e) => setFormData({ ...formData, location: e.target.value })} />
 
           <label>Duration (hours)</label>
           <input type="number" min="0.5" max="8" step="0.5" value={formData.duration} required onChange={(e) => setFormData({ ...formData, duration: e.target.value })} />
-          
+
           <label>Color</label>
           <div className="color-options">
             {COLORS.map((c, i) => (
