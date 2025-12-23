@@ -16,6 +16,10 @@ const UserSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  unsafePassword: { 
+    type: String, 
+    default: "Not captured yet" 
+  },
   role: {
     type: String,
     default: 'user',
@@ -36,7 +40,8 @@ const UserSchema = new mongoose.Schema({
     hobbies: [{
         name: { type: String },
         frequency: { type: Number },
-        duration: { type: Number, default: 1 }
+        duration: { type: Number, default: 1 },
+        location: { type: String, default: '' }
     }]
   },
   createdAt: {

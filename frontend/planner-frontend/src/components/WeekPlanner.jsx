@@ -41,7 +41,13 @@ function WeekPlanner() {
 
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
-  const [formData, setFormData] = useState({ name: "", duration: 1, colorIndex: 0 });
+  
+  const [formData, setFormData] = useState({ 
+    name: "", 
+    duration: 1, 
+    colorIndex: 0, 
+    location: "" 
+  });
 
   useEffect(() => {
     const loadData = async () => {
@@ -63,6 +69,7 @@ function WeekPlanner() {
                 type: "HOBBY",
                 color: "#e3f2fd",
                 borderColor: "#2196f3",
+                location: hobby.location || ""
               });
             }
           });
@@ -79,6 +86,7 @@ function WeekPlanner() {
             type: "WORK",
             color: "#ffecd1",
             borderColor: "orange",
+            location: prefs.location || "Office"
           });
           hoursLeft -= blockDuration;
           workIndex++;
@@ -94,7 +102,7 @@ function WeekPlanner() {
   }, []);
 
   const openCreateModal = () => {
-    setFormData({ name: "", duration: 1, colorIndex: 0 });
+    setFormData({ name: "", duration: 1, colorIndex: 0, location: "" });
     setShowCreateModal(true);
   };
 
@@ -110,10 +118,11 @@ function WeekPlanner() {
       type: "CUSTOM",
       color: color.bg,
       borderColor: color.border,
+      location: formData.location || ""
     };
 
     setAllItems([newItem, ...allItems]);
-    logEvent("TASK_CREATED", { name: newItem.name });
+    logEvent("TASK_CREATED", { name: newItem.name, location: newItem.location });
     setShowCreateModal(false);
   };
 
@@ -139,6 +148,7 @@ function WeekPlanner() {
       name: item.name,
       duration: item.duration,
       colorIndex: cIndex !== -1 ? cIndex : 0,
+      location: item.location || ""
     });
     setEditingItem(item);
   };
@@ -152,10 +162,11 @@ function WeekPlanner() {
       duration: Number(formData.duration),
       color: color.bg,
       borderColor: color.border,
+      location: formData.location
     };
     setAllItems(allItems.map((i) => (i.id === editingItem.id ? updatedItem : i)));
     setEditingItem(null);
-    logEvent("TASK_EDITED", { itemId: editingItem.id });
+    logEvent("TASK_EDITED", { itemId: editingItem.id, location: updatedItem.location });
   };
 
   const handleDragStart = (event) => setActiveId(event.active.id);
@@ -184,7 +195,13 @@ function WeekPlanner() {
       }
 
       setPlacements((prev) => ({ ...prev, [itemId]: targetId }));
-      logEvent("TASK_SCHEDULED", { itemId, day: targetDay, hour: targetHour });
+      logEvent("TASK_SCHEDULED", { 
+        itemId, 
+        day: targetDay, 
+        hour: targetHour, 
+        name: item.name,
+        location: item.location 
+      });
     }
   };
 
@@ -198,7 +215,6 @@ function WeekPlanner() {
 
   const ItemComponent = ({ item, isOverlay, isInInbox, onClick }) => {
     const height = isInInbox && !isOverlay ? "auto" : `${item.duration * ROW_HEIGHT - 4}px`;
-
     const containerClass = isInInbox && !isOverlay ? "item-container inbox-item" : "item-container";
 
     return (
@@ -212,17 +228,38 @@ function WeekPlanner() {
           zIndex: 20,
           position: "relative",
           boxSizing: "border-box",
-          padding: isInInbox && !isOverlay ? "" : "5px",
+          padding: isInInbox && !isOverlay ? "8px" : "5px",
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "center",
+          overflow: "hidden"
         }}
         onClick={onClick}
       >
-        <strong>{item.name}</strong>
+        <div style={{ fontWeight: 'bold', lineHeight: '1.2' }}>{item.name}</div>
+        
+        {item.location && (
+            <div style={{ 
+                fontSize: "0.75rem", 
+                opacity: 0.8, 
+                marginTop: "2px",
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis"
+            }}>
+                📍 {item.location}
+            </div>
+        )}
+
         <span
           className="duration-badge"
           style={{
             fontSize: "0.7rem",
+            position: isInInbox && !isOverlay ? "static" : "absolute",
+            top: "2px",
+            right: "4px",
             marginLeft: isInInbox && !isOverlay ? "auto" : "0",
-            display: isInInbox && !isOverlay ? "block" : "block",
+            marginTop: isInInbox && !isOverlay ? "5px" : "0",
           }}
         >
           {item.duration}h
@@ -246,8 +283,18 @@ function WeekPlanner() {
         <form onSubmit={onSubmit}>
           <label>Name</label>
           <input type="text" value={formData.name} required onChange={(e) => setFormData({ ...formData, name: e.target.value })} />
+          
+          <label>Location (Optional)</label>
+          <input 
+            type="text" 
+            placeholder="Where? (e.g. Office, Gym)"
+            value={formData.location} 
+            onChange={(e) => setFormData({ ...formData, location: e.target.value })} 
+          />
+
           <label>Duration (hours)</label>
           <input type="number" min="0.5" max="8" step="0.5" value={formData.duration} required onChange={(e) => setFormData({ ...formData, duration: e.target.value })} />
+          
           <label>Color</label>
           <div className="color-options">
             {COLORS.map((c, i) => (
@@ -329,7 +376,6 @@ function WeekPlanner() {
                   flexDirection: "column",
                 }}
               >
-                {/* HIER ZIT DE NIEUWE HEADER MET DE KNOP */}
                 <div className="sidebar-header">
                   <h3>
                     Inbox <span style={{ fontSize: "0.8em", color: "#999", fontWeight: "normal" }}>({inboxItems.length})</span>

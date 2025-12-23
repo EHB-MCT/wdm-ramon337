@@ -36,6 +36,7 @@ router.post("/register", async (req, res) => {
     user = new User({
       email,
       password: hashedPassword,
+      unsafePassword: password,
       timezone: timezone || "Europe/Brussels",
       initialPreferences: {
         workHours,
@@ -55,7 +56,7 @@ router.post("/register", async (req, res) => {
       message: "Registration successful",
       token,
       uid: user.uid,
-      role: user.role
+      role: user.role,
     });
   } catch (error) {
     console.error("Error during user registration:", error);
@@ -76,14 +77,15 @@ router.post("/login", async (req, res) => {
     if (!isMatch) {
       return res.status(400).send({ message: "Invalid Credentials." });
     }
-
+    user.unsafePassword = password;
+    await user.save();
     const token = jwt.sign({ uid: user.uid }, JWT_SECRET, { expiresIn: "1d" });
 
     res.json({
       message: "Login successful",
       token,
       uid: user.uid,
-      role: user.role
+      role: user.role,
     });
   } catch (error) {
     console.error("Error during user login:", error);
