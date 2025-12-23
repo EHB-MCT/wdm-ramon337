@@ -1,0 +1,93 @@
+.admin-header {
+  margin-bottom: 30px;
+}
+
+.admin-header h2 {
+  font-size: 2rem;
+  color: var(--primary-color);
+}
+
+/* --- KPI CARDS --- */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
+  margin-bottom: 40px;
+}
+
+.stat-card {
+  background: white;
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+  text-align: center;
+  border-bottom: 4px solid var(--accent-color);
+}
+
+.stat-card h3 {
+  font-size: 2.5rem;
+  margin: 10px 0;
+  color: var(--primary-color);
+}
+
+.stat-card p {
+  color: #666;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+/* --- DATA TABLE --- */
+.table-container {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+  overflow-x: auto; /* Scrollen op kleine schermen */
+  padding: 20px;
+}
+
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+}
+
+.admin-table th, .admin-table td {
+  padding: 15px;
+  text-align: left;
+  border-bottom: 1px solid #eee;
+}
+
+.admin-table th {
+  background-color: #f8f9fa;
+  color: #555;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.admin-table tr:hover {
+  background-color: #f1f8ff;
+}
+
+/* --- VISUAL BARS --- */
+.flex-bar-bg {
+  width: 100px;
+  height: 8px;
+  background-color: #eee;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.flex-bar-fill {
+  height: 100%;
+  border-radius: 4px;
+}
+
+.activity-badge {
+  background: #e3f2fd;
+  color: #1565c0;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: bold;
+}

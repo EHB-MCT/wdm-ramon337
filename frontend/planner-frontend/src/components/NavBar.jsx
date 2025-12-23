@@ -42,6 +42,9 @@ function Navbar({ isLoggedIn, onLogout }) {
             <NavLink to="/profile" style={getLinkClass}>
               Profile
             </NavLink>
+            <NavLink to="/admin" style={{ color: "#ffcc80" }}>
+              Admin
+            </NavLink>
           </>
         )}
       </div>

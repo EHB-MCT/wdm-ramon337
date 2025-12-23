@@ -1,28 +1,10 @@
-const mongoose = require("mongoose");
+const mongoose = require('mongoose');
 
 const EventSchema = new mongoose.Schema({
-  // UID
-  uid: {
-    type: String,
-    required: true,
-    index: true,
-  },
-  // Type of action (ex. 'TASK_MOVED', 'HOVER', ...)
-  eventType: {
-    type: String,
-    required: true,
-  },
-  timestamp: {
-    type: Date,
-    default: Date.now,
-  },
-  meta: {
-    type: Object,
-  },
-  payload: {
-    type: Object,
-    required: true,
-  },
+  userId: { type: String, required: true },
+  eventType: { type: String, required: true },
+  eventData: { type: Object },
+  timestamp: { type: Date, default: Date.now }
 });
 
-module.exports = mongoose.model("Event", EventSchema);
+module.exports = mongoose.model('Event', EventSchema);
