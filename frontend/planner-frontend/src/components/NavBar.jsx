@@ -2,6 +2,8 @@ import React from "react";
 import { NavLink } from "react-router-dom";
 
 function Navbar({ isLoggedIn, onLogout }) {
+  const userRole = localStorage.getItem("userRole");
+
   const navStyle = {
     padding: "15px",
     background: "#333",
@@ -42,9 +44,11 @@ function Navbar({ isLoggedIn, onLogout }) {
             <NavLink to="/profile" style={getLinkClass}>
               Profile
             </NavLink>
-            <NavLink to="/admin" style={{ color: "#ffcc80" }}>
-              Admin
-            </NavLink>
+            {userRole === 'admin' && (
+              <NavLink to="/admin" style={{ ...linkStyle, color: "#ffcc80" }}>
+                Admin
+              </NavLink>
+            )}
           </>
         )}
       </div>

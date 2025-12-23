@@ -7,6 +7,9 @@ function ProfilePage() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  // Haal de rol op om te checken of we de knop moeten tonen
+  const userRole = localStorage.getItem('userRole');
+
   useEffect(() => {
     const loadData = async () => {
       const token = localStorage.getItem('userToken');
@@ -20,7 +23,6 @@ function ProfilePage() {
         setUser(data);
       } catch (err) {
         console.error("Failed to load profile", err);
-        // Eventueel uitloggen bij error
       } finally {
         setLoading(false);
       }
@@ -31,6 +33,7 @@ function ProfilePage() {
   const handleLogout = () => {
     localStorage.removeItem('userToken');
     localStorage.removeItem('userUID');
+    localStorage.removeItem('userRole'); // Ook rol wissen
     navigate('/');
     window.location.reload();
   };
@@ -41,10 +44,6 @@ function ProfilePage() {
   const prefs = user.initialPreferences || {};
 
   // --- BEREKENING: VRIJE TIJD ---
-  // 1 week = 168 uur
-  // Werk = workHours
-  // Slaap = sleepHours * 7
-  // Commute = (commuteTime * 2 * 5) / 60 (heen en terug, 5 dagen)
   const totalHours = 168;
   const weeklySleep = (prefs.sleepHours || 8) * 7;
   const weeklyWork = prefs.workHours || 40;
@@ -106,7 +105,7 @@ function ProfilePage() {
           </div>
         </div>
 
-        {/* KOLOM 2: HOBBIES & INFO */}
+        {/* KOLOM 2: HOBBIES & INFO & ADMIN */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
             
             <div className="profile-card">
@@ -138,6 +137,34 @@ function ProfilePage() {
                     <span className="stat-val">{new Date(user.createdAt || Date.now()).toLocaleDateString()}</span>
                 </div>
             </div>
+
+            {/* --- NIEUWE ADMIN KNOP (ALLEEN VOOR ADMINS) --- */}
+            {userRole === 'admin' && (
+              <div className="profile-card" style={{ borderTop: '4px solid #ff9800', background: '#fff3e0' }}>
+                <h3 style={{ color: '#e65100', marginTop: 0 }}>👮‍♂️ Admin Zone</h3>
+                <p style={{ fontSize: '0.9rem', marginBottom: '15px' }}>
+                    You have administrative access to the system data.
+                </p>
+                <button 
+                    onClick={() => navigate('/admin')}
+                    style={{
+                        backgroundColor: '#ff9800',
+                        color: 'white',
+                        border: 'none',
+                        padding: '12px 20px',
+                        borderRadius: '6px',
+                        fontWeight: 'bold',
+                        cursor: 'pointer',
+                        width: '100%',
+                        fontSize: '1rem',
+                        boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                    }}
+                >
+                    Go to Admin Dashboard →
+                </button>
+              </div>
+            )}
+            {/* --- EINDE ADMIN KNOP --- */}
 
         </div>
 

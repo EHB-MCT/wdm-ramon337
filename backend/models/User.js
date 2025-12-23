@@ -16,6 +16,11 @@ const UserSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  role: {
+    type: String,
+    default: 'user',
+    enum: ['user', 'admin']
+  },
   timezone: {
     type: String,
     default: 'Europe/Brussels',
@@ -25,7 +30,7 @@ const UserSchema = new mongoose.Schema({
     sleepHours: { type: Number, default: 8 },
     
     location: { type: String, default: '' },
-    commuteTime: { type: Number, default: 0 }, // in minutes
+    commuteTime: { type: Number, default: 0 },
     flexibility: { type: Number, min: 1, max: 10, default: 5 },
     
     hobbies: [{

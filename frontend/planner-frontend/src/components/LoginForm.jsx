@@ -24,36 +24,41 @@ function LoginForm() {
         throw new Error(data.message || 'Login failed');
       }
 
+      // --- HIER SLAAN WE ALLES OP ---
       localStorage.setItem('userToken', data.token);
       localStorage.setItem('userUID', data.uid);
+      
+      // 👇 DEZE REGEL IS CRUCIAAL VOOR DE KNOP!
+      localStorage.setItem('userRole', data.role); 
 
+      // Navigeer naar de planner
       navigate('/planner');
-      window.location.reload(); 
+      window.location.reload(); // Zorgt dat de Navbar update
+
     } catch (err) {
       setError(err.message);
     }
   };
 
   return (
-    <form onSubmit={handleSubmit} style={{ maxWidth: '300px', margin: 'auto' }}>
-      <input
-        type="email"
-        placeholder="Email"
-        value={email}
+    <form onSubmit={handleSubmit} style={{maxWidth: '300px', margin: '0 auto', display:'flex', flexDirection:'column', gap:'10px'}}>
+      {error && <div style={{color: 'red'}}>{error}</div>}
+      
+      <input 
+        type="email" 
+        placeholder="Email" 
+        value={email} 
         onChange={(e) => setEmail(e.target.value)}
-        required
-        style={{ width: '100%', marginBottom: '10px', padding: '8px' }}
+        required 
       />
-      <input
-        type="password"
-        placeholder="Password"
-        value={password}
+      <input 
+        type="password" 
+        placeholder="Password" 
+        value={password} 
         onChange={(e) => setPassword(e.target.value)}
-        required
-        style={{ width: '100%', marginBottom: '10px', padding: '8px' }}
+        required 
       />
-      {error && <p style={{ color: 'red' }}>{error}</p>}
-      <button type="submit" style={{ width: '100%', padding: '10px' }}>Login</button>
+      <button type="submit" style={{cursor:'pointer', padding:'10px'}}>Login</button>
     </form>
   );
 }

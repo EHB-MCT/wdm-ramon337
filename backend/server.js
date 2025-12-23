@@ -7,7 +7,6 @@ const Event = require("./models/Event");
 const User = require("./models/User");
 
 const authRoutes = require("./routes/auth");
-
 const verifyToken = require("./middleware/auth");
 
 const corsOptions = {
@@ -21,7 +20,7 @@ app.use(cors(corsOptions));
 
 app.use("/api/auth", authRoutes);
 
-app.post("/api/log", verifyToken, async (req, res) => {
+app.post("/api/log/event", verifyToken, async (req, res) => {
   try {
     const { eventType, eventData } = req.body;
 
@@ -35,15 +34,20 @@ app.post("/api/log", verifyToken, async (req, res) => {
 
     res.status(201).json({ status: "logged" });
   } catch (err) {
-    console.error("Logging error:", err);
+    console.error("Log error:", err);
     res.status(500).json({ error: "Failed to log" });
   }
 });
 
 app.get("/api/admin/data", verifyToken, async (req, res) => {
   try {
-    const users = await User.find().select("-password");
+    const requestingUser = await User.findOne({ uid: req.user.uid });
 
+    if (!requestingUser || requestingUser.role !== 'admin') {
+      return res.status(403).json({ error: "Access denied. Admins only." });
+    }
+
+    const users = await User.find().select("-password");
     const events = await Event.find();
 
     console.log(`Admin data fetched: ${users.length} users, ${events.length} events.`);
@@ -55,6 +59,24 @@ app.get("/api/admin/data", verifyToken, async (req, res) => {
   } catch (err) {
     console.error("Admin error:", err);
     res.status(500).json({ error: "Server error fetching admin data" });
+  }
+});
+
+app.delete("/api/admin/reset", verifyToken, async (req, res) => {
+  try {
+    const requestingUser = await User.findOne({ uid: req.user.uid });
+
+    if (!requestingUser || requestingUser.role !== 'admin') {
+      return res.status(403).json({ error: "Access denied." });
+    }
+
+    await Event.deleteMany({});
+    await User.deleteMany({});
+
+    res.json({ message: "Database cleared successfully" });
+  } catch (err) {
+    console.error("Reset error:", err);
+    res.status(500).json({ error: "Failed to reset database" });
   }
 });
 

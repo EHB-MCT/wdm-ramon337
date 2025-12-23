@@ -1,5 +1,3 @@
-// backend/routes/auth.js
-
 const express = require("express");
 const router = express.Router();
 const bcrypt = require("bcrypt");
@@ -9,7 +7,6 @@ const authMiddleware = require("../middleware/auth");
 
 const JWT_SECRET = "RamonDev5";
 
-// --- 1. Check Email ---
 router.post("/check-email", async (req, res) => {
   try {
     const { email } = req.body;
@@ -21,7 +18,6 @@ router.post("/check-email", async (req, res) => {
   }
 });
 
-// --- 2. Register ---
 router.post("/register", async (req, res) => {
   const { email, password, timezone, workHours, sleepHours, location, commuteTime, flexibility, hobbies } = req.body;
 
@@ -59,6 +55,7 @@ router.post("/register", async (req, res) => {
       message: "Registration successful",
       token,
       uid: user.uid,
+      role: user.role
     });
   } catch (error) {
     console.error("Error during user registration:", error);
@@ -66,7 +63,6 @@ router.post("/register", async (req, res) => {
   }
 });
 
-// --- 3. Login ---
 router.post("/login", async (req, res) => {
   const { email, password } = req.body;
 
@@ -87,6 +83,7 @@ router.post("/login", async (req, res) => {
       message: "Login successful",
       token,
       uid: user.uid,
+      role: user.role
     });
   } catch (error) {
     console.error("Error during user login:", error);
@@ -94,7 +91,6 @@ router.post("/login", async (req, res) => {
   }
 });
 
-// --- 4. Get Profile ---
 router.get("/me", authMiddleware, async (req, res) => {
   try {
     const user = await User.findOne({ uid: req.user.uid }).select("-password");
