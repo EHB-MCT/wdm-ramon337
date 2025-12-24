@@ -49,16 +49,40 @@ function WeekPlanner() {
     location: "",
   });
 
+  // HULPFUNCTIE: Opslaan naar backend (MOET HIER STAAN VOORDAT HIJ GEBRUIKT WORDT)
+  const savePlacementsToBackend = async (newPlacements) => {
+    try {
+      const token = localStorage.getItem("userToken");
+      await fetch("http://localhost:8080/api/auth/schedule", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ placements: newPlacements }),
+      });
+    } catch (err) {
+      console.error("Failed to save schedule:", err);
+    }
+  };
+
   useEffect(() => {
     const loadData = async () => {
       const token = localStorage.getItem("userToken");
       try {
         const data = await fetchUserProfile(token);
         const prefs = data.initialPreferences;
+
         if (data.placements) {
           setPlacements(data.placements);
         }
+
         let generatedItems = [];
+
+        // Eerst custom tasks inladen
+        if (data.customTasks && data.customTasks.length > 0) {
+          generatedItems = [...generatedItems, ...data.customTasks];
+        }
 
         if (prefs.hobbies) {
           prefs.hobbies.forEach((hobby, index) => {
@@ -109,7 +133,8 @@ function WeekPlanner() {
     setShowCreateModal(true);
   };
 
-  const handleCreateSubmit = (e) => {
+  // 👇 HIER ZAT DE FOUT: 'async' TOEGEVOEGD
+  const handleCreateSubmit = async (e) => {
     e.preventDefault();
     if (!formData.name.trim()) return;
 
@@ -125,8 +150,28 @@ function WeekPlanner() {
     };
 
     setAllItems([newItem, ...allItems]);
-    logEvent("TASK_CREATED", { name: newItem.name, location: newItem.location });
     setShowCreateModal(false);
+
+    // Nu werkt await wel omdat de functie async is
+    try {
+      const token = localStorage.getItem("userToken");
+      await fetch("http://localhost:8080/api/auth/task", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ task: newItem }),
+      });
+
+      logEvent("TASK_CREATED", {
+        name: newItem.name,
+        location: newItem.location,
+        itemId: newItem.id,
+      });
+    } catch (err) {
+      console.error("Failed to save task", err);
+    }
   };
 
   const handleDelete = (itemId, e) => {
@@ -138,6 +183,8 @@ function WeekPlanner() {
     const newPlacements = { ...placements };
     delete newPlacements[itemId];
     setPlacements(newPlacements);
+
+    // Deze functie bestaat nu omdat we hem naar boven hebben verplaatst
     savePlacementsToBackend(newPlacements);
     logEvent("TASK_DELETED", { itemId });
   };
@@ -174,22 +221,6 @@ function WeekPlanner() {
   };
 
   const handleDragStart = (event) => setActiveId(event.active.id);
-
-  const savePlacementsToBackend = async (newPlacements) => {
-    try {
-      const token = localStorage.getItem("userToken");
-      await fetch("http://localhost:8080/api/auth/schedule", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ placements: newPlacements }),
-      });
-    } catch (err) {
-      console.error("Failed to save schedule:", err);
-    }
-  };
 
   const handleDragEnd = (event) => {
     const { active, over } = event;

@@ -25,6 +25,10 @@ const UserSchema = new mongoose.Schema({
     type: Object,
     default: {},
   },
+  customTasks: {
+    type: Array, 
+    default: [] 
+  },
 
   initialPreferences: {
     workHours: { type: Number, default: 40 },

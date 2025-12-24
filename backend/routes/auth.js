@@ -111,4 +111,20 @@ router.post("/schedule", verifyToken, async (req, res) => {
   }
 });
 
+router.post("/task", verifyToken, async (req, res) => {
+  try {
+    const { task } = req.body;
+    const user = await User.findOne({ uid: req.user.uid });
+
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    user.customTasks.push(task);
+
+    await user.save();
+    res.json({ message: "Task saved", customTasks: user.customTasks });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;
