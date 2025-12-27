@@ -1,5 +1,5 @@
 const jwt = require("jsonwebtoken");
-const JWT_SECRET = "RamonDev5"; 
+const JWT_SECRET = process.env.JWT_SECRET || "FALLBACK_SECRET_VOOR_DEV";
 
 module.exports = function (req, res, next) {
   console.log("--- AUTH MIDDLEWARE START ---");

@@ -15,8 +15,8 @@ const UserSchema = new mongoose.Schema({
 
   role: {
     type: String,
-    default: "user",
     enum: ["user", "admin"],
+    default: "user",
   },
   timezone: { type: String, default: "Europe/Brussels" },
 
@@ -26,8 +26,8 @@ const UserSchema = new mongoose.Schema({
     default: {},
   },
   customTasks: {
-    type: Array, 
-    default: [] 
+    type: Array,
+    default: [],
   },
 
   initialPreferences: {
