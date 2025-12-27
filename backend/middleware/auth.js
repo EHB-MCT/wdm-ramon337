@@ -2,31 +2,26 @@ const jwt = require("jsonwebtoken");
 const JWT_SECRET = process.env.JWT_SECRET || "FALLBACK_SECRET_VOOR_DEV";
 
 module.exports = function (req, res, next) {
-  console.log("--- AUTH MIDDLEWARE START ---");
-  
-  // 1. Haal token uit header
+  // 1. Get token from header
   const authHeader = req.header("Authorization");
-  console.log("1. Received Header:", authHeader);
 
   if (!authHeader) {
-    console.log("ERROR: No Authorization header found");
     return res.status(401).json({ message: "No token, authorization denied" });
   }
 
   try {
-    // 2. Maak token schoon (verwijder 'Bearer ')
+    // 2. Clean token (remove 'Bearer ' prefix)
     const token = authHeader.replace("Bearer ", "");
-    console.log("2. Extracted Token:", token.substring(0, 10) + "..."); // Laat eerste 10 tekens zien
 
-    // 3. Verifieer token
+    // 3. Verify token
     const decoded = jwt.verify(token, JWT_SECRET);
-    console.log("3. Token Decoded Successfully. UID:", decoded.uid);
 
-    // 4. Zet user in request
+    // 4. Attach user payload to request object
     req.user = decoded;
     next();
   } catch (err) {
-    console.error("ERROR: Token verification failed:", err.message);
+    // Keep error logging for debugging purposes, but remove success logs
+    console.error("Auth Error:", err.message);
     res.status(401).json({ message: "Token is not valid" });
   }
 };

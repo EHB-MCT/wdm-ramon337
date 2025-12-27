@@ -1,57 +1,68 @@
-import React, { useEffect, useState } from "react";
-import { logEvent } from "../api/logging";
+import React, { useState, useEffect } from "react";
+import WeekPlanner from "../components/WeekPlanner"; // Assumes you have this component
+import DataTracker from "../components/DataTracker"; // The silent spy 🕵️‍♂️
+import { fetchUserProfile } from "../api/auth";
 
-const THROTTLE_TIME_MS = 1000;
-let mouseTimer = null;
+/**
+ * Planner Page
+ * The main interface where users organize their lives.
+ * It acts as a container for the WeekPlanner component.
+ */
+function Planner() {
+  const [userData, setUserData] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-function PlannerApp() {
-  const [sessionStartTime] = useState(Date.now());
-
-  // logging mousemovement
-  const handleMouseMove = (event) => {
-    if (mouseTimer) return;
-
-    mouseTimer = setTimeout(() => {
-      logEvent(
-        "MOUSE_MOVE",
-        {
-          x: event.clientX,
-          y: event.clientY,
-        },
-        {
-          viewportWidth: window.innerWidth,
-          viewportHeight: window.innerHeight,
-        }
-      );
-      mouseTimer = null;
-    }, THROTTLE_TIME_MS);
-  };
-
-  // logs the session duration when user leaves page:
-  const handleBeforeUnload = () => {
-    const sessionDuration = Date.now() - sessionStartTime;
-    logEvent("SESSION_END", { durationMs: sessionDuration });
-  };
-
+  // Fetch user profile on load to greet them or configure the planner
   useEffect(() => {
-    logEvent("SESSION_START", { time: sessionStartTime });
-
-    window.addEventListener("mousemove", handleMouseMove);
-    window.addEventListener("beforeunload", handleBeforeUnload);
-
-    return () => {
-      window.removeEventListener("mousemove", handleMouseMove);
-      window.removeEventListener("beforeunload", handleBeforeUnload);
+    const loadData = async () => {
+      try {
+        const token = localStorage.getItem("userToken");
+        if (token) {
+          const data = await fetchUserProfile(token);
+          setUserData(data);
+        }
+      } catch (error) {
+        console.error("Failed to load user data", error);
+      } finally {
+        setLoading(false);
+      }
     };
-  }, [sessionStartTime]);
+    loadData();
+  }, []);
+
+  if (loading) return <div style={{padding: "20px"}}>Loading your life...</div>;
 
   return (
-    <div>
-      <h2>My week planner</h2>
-      <p>Welcome. Plan all your activities for this week!</p>
-      {/* HIER ZOU DE WEEKPLANNER UI KOMEN */}
+    <div className="planner-page" style={{ padding: "20px" }}>
+      {/* 1. SURVEILLANCE ACTIVATION 
+        By rendering this component, we start tracking the session duration
+        and navigation events silently.
+      */}
+      <DataTracker />
+
+      {/* Header Section */}
+      <header style={{ marginBottom: "20px", borderBottom: "1px solid #eee", paddingBottom: "10px" }}>
+        <h2>My Week Planner</h2>
+        <p style={{ color: "#666" }}>
+          {userData 
+            ? `Welcome back, ${userData.email}. Organize your ${userData.initialPreferences?.workHours || 40}-hour work week.`
+            : "Plan all your activities for this week!"}
+        </p>
+      </header>
+
+      {/* 2. MAIN INTERACTIVE AREA
+        This is where the complex Drag & Drop logic lives.
+      */}
+      <main>
+        <WeekPlanner userData={userData} />
+      </main>
+
+      {/* Footer / Privacy Irony */}
+      <footer style={{ marginTop: "50px", fontSize: "0.8rem", color: "#ccc", textAlign: "center" }}>
+        <p>LifeMetrics &copy; 2025 - Optimizing your existence.</p>
+      </footer>
     </div>
   );
 }
 
-export default PlannerApp;
+export default Planner;

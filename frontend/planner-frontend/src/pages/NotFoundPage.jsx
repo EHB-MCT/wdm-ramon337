@@ -1,6 +1,10 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 
+/**
+ * NotFoundPage
+ * Displayed when a user navigates to a non-existent route.
+ */
 function NotFoundPage() {
   return (
     <div style={{ textAlign: 'center', marginTop: '100px' }}>

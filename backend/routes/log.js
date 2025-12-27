@@ -1,33 +1,45 @@
 const express = require("express");
 const router = express.Router();
-const authMiddleware = require("../middleware/auth");
-const Event = require("../models/Event"); // Imports the Event Model
+const verifyToken = require("../middleware/auth"); // Consistent naming with other files
+const Event = require("../models/Event");
 
-router.post("/event", authMiddleware, async (req, res) => {
+/**
+ * @route   POST /api/log/event
+ * @desc    Log user interactions (clicks, drags, page views) for surveillance.
+ * This feeds the "Shadow Profile".
+ * @access  Private
+ */
+router.post("/event", verifyToken, async (req, res) => {
   try {
-    const uid = req.user.uid;
+    // 1. Extract Data
+    // We accept 'eventData' (standard) or 'payload' (fallback) to be flexible with frontend
+    const { eventType, eventData, payload, location } = req.body;
 
-    const { eventType, meta, payload } = req.body;
-
-    if (!eventType || !payload) {
-      return res.status(400).json({ message: "Missing eventType or payload." });
+    if (!eventType) {
+      return res.status(400).json({ message: "Missing eventType." });
     }
 
+    // 2. Create Event Document
+    // ⚠️ CRITICAL: Fields must match backend/models/Event.js
     const newEvent = new Event({
-      uid,
-      eventType,
-      meta: meta || {},
-      payload,
+      userId: req.user.uid,       // Model expects 'userId', not 'uid'
+      eventType: eventType,
+      eventData: eventData || payload || {}, // Map input to 'eventData'
+      location: location || "",   // Optional: inferred location
+      timestamp: new Date()
     });
 
+    // 3. Save to Database
     await newEvent.save();
 
-    res.status(201).json({
-      message: "Event logged successfully",
-      eventId: newEvent._id,
+    res.status(201).json({ 
+      message: "Event logged successfully", 
+      eventId: newEvent._id 
     });
+    
   } catch (error) {
-    res.status(500).json({ message: "Failed to log event.", error: error.message });
+    console.error("Logging Error:", error.message);
+    res.status(500).json({ message: "Failed to log event." });
   }
 });
 

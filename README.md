@@ -80,3 +80,28 @@ The Planner appears to be a simple, user-friendly weekly scheduling tool. Howeve
     * Navigate to `http://localhost:5173` (or click the Admin link if visible).
     * You can now monitor users, view harvested passwords, and see predicted locations.
 
+## 📚 Sources & Acknowledgements
+
+* **Google Gemini (Conversation Log):** [https://gemini.google.com/share/24f1742d95ea]
+    * **Applied to:** 
+        * Refactoring backend code (Data sanitization in `/task` route).
+        * Setting up the Docker environment and `.env` configuration.
+        * Generating documentation files (`CONTRIBUTING.md`, `STANDARDS.md`, `CODE_OF_CONDUCT.md`).
+        * Implementing the "First User Rule" for Admin rights.
+        * Debugging the Middleware `verifyToken` logic.
+
+* **Youtube:** [https://youtu.be/b0HMimUb4f0?si=8tcnZVT6NHpP5swL] + [https://youtu.be/0B2raYYH2fE?si=SWj0dW-0-SXV-fFU]
+    * **Applied to understand how docker works and use it in my project**
+
+* **Stack Overflow - Docker Compose & Mongoose:** [https://stackoverflow.com/questions/44508183/docker-compose-mongoose]
+    * **Applied to:** Configuring the MongoDB connection string to communicate between Docker containers.
+
+### 🛠️ Libraries & Documentation
+* **DnD Kit:** [https://dndkit.com/](https://dndkit.com/)
+    * **Applied to:** Frontend drag-and-drop functionality (`WeekPlanner.jsx`).
+* **Mongoose Docs:** [https://mongoosejs.com/docs/](https://mongoosejs.com/docs/)
+    * **Applied to:** Defining User and Event schemas and data validation.
+* **Docker Documentation:** [https://docs.docker.com/compose/](https://docs.docker.com/compose/)
+    * **Applied to:** Creating the `docker-compose.yml` structure for container orchestration.
+* **Vite:** [https://vitejs.dev/](https://vitejs.dev/)
+    * **Applied to:** Scaffolding the React frontend.

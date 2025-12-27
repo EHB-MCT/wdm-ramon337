@@ -5,26 +5,39 @@ import { logEvent } from "../api/logging";
 import { Draggable } from "./Draggable";
 import { Droppable } from "./Droppable";
 
-const HOURS = Array.from({ length: 15 }, (_, i) => i + 8);
+// --- CONSTANTS ---
+const HOURS = Array.from({ length: 15 }, (_, i) => i + 8); // 08:00 to 22:00
 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 const ROW_HEIGHT = 60;
+const API_BASE_URL = "http://localhost:8080/api";
 
 const COLORS = [
-  { bg: "#e3f2fd", border: "#2196f3" },
-  { bg: "#ffecd1", border: "orange" },
-  { bg: "#e8f5e9", border: "#4caf50" },
-  { bg: "#ffebee", border: "#e53935" },
-  { bg: "#f3e5f5", border: "#9c27b0" },
+  { bg: "#e3f2fd", border: "#2196f3" }, // Blue
+  { bg: "#ffecd1", border: "orange" },  // Orange
+  { bg: "#e8f5e9", border: "#4caf50" }, // Green
+  { bg: "#ffebee", border: "#e53935" }, // Red
+  { bg: "#f3e5f5", border: "#9c27b0" }, // Purple
 ];
 
+// --- HELPER FUNCTIONS ---
+
+/**
+ * Checks if a task overlaps with existing placements.
+ * Returns true if a collision is detected.
+ */
 const checkOverlap = (targetDay, targetHour, itemDuration, currentItemId, placements, allItems) => {
   for (const [placedItemId, placedSlotId] of Object.entries(placements)) {
-    if (placedItemId === currentItemId) continue;
+    if (placedItemId === currentItemId) continue; // Don't check against self
+
     const [placedDay, placedHourStr] = placedSlotId.split("-");
     const placedHour = parseFloat(placedHourStr);
-    if (placedDay !== targetDay) continue;
+
+    if (placedDay !== targetDay) continue; // Different day, no collision
+
     const placedItem = allItems.find((i) => i.id === placedItemId);
     const placedDuration = placedItem ? placedItem.duration : 1;
+
+    // Standard AABB collision detection for 1D timeline
     if (targetHour < placedHour + placedDuration && placedHour < targetHour + itemDuration) {
       return true;
     }
@@ -32,16 +45,111 @@ const checkOverlap = (targetDay, targetHour, itemDuration, currentItemId, placem
   return false;
 };
 
-function WeekPlanner() {
+// --- SUB-COMPONENTS ---
+
+/**
+ * Renders an individual task card.
+ * Moved outside the main component to prevent unnecessary re-renders.
+ */
+const ItemComponent = ({ item, isOverlay, isInInbox, onClick, onEdit, onDelete }) => {
+  const height = isInInbox && !isOverlay ? "auto" : `${item.duration * ROW_HEIGHT - 4}px`;
+  const containerClass = isInInbox && !isOverlay ? "item-container inbox-item" : "item-container";
+
+  return (
+    <div
+      className={containerClass}
+      style={{
+        background: item.color,
+        borderLeft: `4px solid ${item.borderColor}`,
+        borderRadius: "4px",
+        height: height,
+        zIndex: 20,
+        position: "relative",
+        boxSizing: "border-box",
+        padding: isInInbox && !isOverlay ? "8px" : "5px",
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "center",
+        overflow: "hidden",
+        cursor: "grab",
+        boxShadow: isOverlay ? "0 5px 15px rgba(0,0,0,0.3)" : "none", // Shadow when dragging
+      }}
+      onClick={onClick}
+    >
+      <div style={{ fontWeight: "bold", lineHeight: "1.2", fontSize: "0.9rem" }}>{item.name}</div>
+
+      {item.location && (
+        <div
+          style={{
+            fontSize: "0.75rem",
+            opacity: 0.8,
+            marginTop: "2px",
+            whiteSpace: "nowrap",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+          }}
+        >
+          📍 {item.location}
+        </div>
+      )}
+
+      {/* Duration Badge */}
+      <span
+        className="duration-badge"
+        style={{
+          fontSize: "0.7rem",
+          position: isInInbox && !isOverlay ? "static" : "absolute",
+          top: "2px",
+          right: "4px",
+          marginLeft: isInInbox && !isOverlay ? "auto" : "0",
+          marginTop: isInInbox && !isOverlay ? "5px" : "0",
+          fontWeight: "bold",
+          opacity: 0.6
+        }}
+      >
+        {item.duration}h
+      </span>
+
+      {/* Action Buttons */}
+      <div style={{ position: 'absolute', bottom: '2px', right: '2px', display: 'flex', gap: '2px' }}>
+        <button 
+            className="edit-btn" 
+            title="Edit" 
+            onPointerDown={(e) => e.stopPropagation()} 
+            onClick={(e) => onEdit(item, e)}
+            style={{border:'none', background:'none', cursor:'pointer', fontSize:'0.8rem'}}
+        >
+          ✎
+        </button>
+
+        <button 
+            className="delete-btn" 
+            title="Delete" 
+            onPointerDown={(e) => e.stopPropagation()} 
+            onClick={(e) => onDelete(item.id, e)}
+            style={{border:'none', background:'none', cursor:'pointer', color:'#d32f2f', fontSize:'0.8rem'}}
+        >
+          ✕
+        </button>
+      </div>
+    </div>
+  );
+};
+
+// --- MAIN COMPONENT ---
+
+function WeekPlanner({ userData }) {
   const [loading, setLoading] = useState(true);
   const [allItems, setAllItems] = useState([]);
   const [placements, setPlacements] = useState({});
   const [activeId, setActiveId] = useState(null);
   const [error, setError] = useState(null);
 
+  // Modal States
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
 
+  // Form State
   const [formData, setFormData] = useState({
     name: "",
     duration: 1,
@@ -49,11 +157,13 @@ function WeekPlanner() {
     location: "",
   });
 
-  // HULPFUNCTIE: Opslaan naar backend (MOET HIER STAAN VOORDAT HIJ GEBRUIKT WORDT)
+  /**
+   * Syncs the current schedule state to the backend.
+   */
   const savePlacementsToBackend = async (newPlacements) => {
     try {
       const token = localStorage.getItem("userToken");
-      await fetch("http://localhost:8080/api/auth/schedule", {
+      await fetch(`${API_BASE_URL}/auth/schedule`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -66,12 +176,13 @@ function WeekPlanner() {
     }
   };
 
+  // Initial Data Load
   useEffect(() => {
     const loadData = async () => {
       const token = localStorage.getItem("userToken");
       try {
         const data = await fetchUserProfile(token);
-        const prefs = data.initialPreferences;
+        const prefs = data.initialPreferences || {};
 
         if (data.placements) {
           setPlacements(data.placements);
@@ -79,11 +190,12 @@ function WeekPlanner() {
 
         let generatedItems = [];
 
-        // Eerst custom tasks inladen
+        // 1. Load Custom Tasks
         if (data.customTasks && data.customTasks.length > 0) {
           generatedItems = [...generatedItems, ...data.customTasks];
         }
 
+        // 2. Generate Hobby Tasks
         if (prefs.hobbies) {
           prefs.hobbies.forEach((hobby, index) => {
             const freq = Number(hobby.frequency) || 1;
@@ -102,6 +214,7 @@ function WeekPlanner() {
           });
         }
 
+        // 3. Generate Work Blocks
         let hoursLeft = prefs.workHours || 40;
         let workIndex = 0;
         while (hoursLeft > 0) {
@@ -113,7 +226,7 @@ function WeekPlanner() {
             type: "WORK",
             color: "#ffecd1",
             borderColor: "orange",
-            location: prefs.location || "Office",
+            location: prefs.location || "Office", // Inferred location
           });
           hoursLeft -= blockDuration;
           workIndex++;
@@ -121,6 +234,7 @@ function WeekPlanner() {
         setAllItems(generatedItems);
       } catch (err) {
         console.error("Error loading planner:", err);
+        setError("Could not load your schedule.");
       } finally {
         setLoading(false);
       }
@@ -128,12 +242,13 @@ function WeekPlanner() {
     loadData();
   }, []);
 
+  // --- HANDLERS ---
+
   const openCreateModal = () => {
     setFormData({ name: "", duration: 1, colorIndex: 0, location: "" });
     setShowCreateModal(true);
   };
 
-  // 👇 HIER ZAT DE FOUT: 'async' TOEGEVOEGD
   const handleCreateSubmit = async (e) => {
     e.preventDefault();
     if (!formData.name.trim()) return;
@@ -152,10 +267,9 @@ function WeekPlanner() {
     setAllItems([newItem, ...allItems]);
     setShowCreateModal(false);
 
-    // Nu werkt await wel omdat de functie async is
     try {
       const token = localStorage.getItem("userToken");
-      await fetch("http://localhost:8080/api/auth/task", {
+      await fetch(`${API_BASE_URL}/auth/task`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -175,8 +289,7 @@ function WeekPlanner() {
   };
 
   const handleDelete = (itemId, e) => {
-    e.stopPropagation();
-    e.preventDefault();
+    if (e) { e.stopPropagation(); e.preventDefault(); }
     if (!window.confirm("Delete this task?")) return;
 
     setAllItems(allItems.filter((i) => i.id !== itemId));
@@ -184,16 +297,12 @@ function WeekPlanner() {
     delete newPlacements[itemId];
     setPlacements(newPlacements);
 
-    // Deze functie bestaat nu omdat we hem naar boven hebben verplaatst
     savePlacementsToBackend(newPlacements);
     logEvent("TASK_DELETED", { itemId });
   };
 
   const openEditModal = (item, e) => {
-    if (e) {
-      e.stopPropagation();
-      e.preventDefault();
-    }
+    if (e) { e.stopPropagation(); e.preventDefault(); }
     const cIndex = COLORS.findIndex((c) => c.bg === item.color);
     setFormData({
       name: item.name,
@@ -220,6 +329,8 @@ function WeekPlanner() {
     logEvent("TASK_EDITED", { itemId: editingItem.id, location: updatedItem.location });
   };
 
+  // --- DND HANDLERS ---
+
   const handleDragStart = (event) => setActiveId(event.active.id);
 
   const handleDragEnd = (event) => {
@@ -231,112 +342,60 @@ function WeekPlanner() {
     const targetId = over.id;
     const item = allItems.find((i) => i.id === itemId);
 
+    // Scenario 1: Drag to Inbox (Remove from schedule)
     if (targetId === "inbox") {
       const newPlacements = { ...placements };
       delete newPlacements[itemId];
       setPlacements(newPlacements);
       savePlacementsToBackend(newPlacements);
       logEvent("TASK_MOVED", { itemId, target: "inbox" });
-    } else {
+    } 
+    // Scenario 2: Drag to Schedule Slot
+    else {
       const [targetDay, targetHourStr] = targetId.split("-");
       const targetHour = parseInt(targetHourStr);
       const hasOverlap = checkOverlap(targetDay, targetHour, item.duration, itemId, placements, allItems);
 
       if (hasOverlap) {
+        // Optional: Show visual feedback that overlap occurred
         return;
       }
 
       const newPlacements = { ...placements, [itemId]: targetId };
       setPlacements(newPlacements);
       savePlacementsToBackend(newPlacements);
+      
+      // Surveillance: Log where the user plans to be
       logEvent("TASK_SCHEDULED", {
         itemId,
         day: targetDay,
         hour: targetHour,
         name: item.name,
-        location: item.location,
+        location: item.location, // Location tracking 📍
       });
     }
   };
 
+  // --- HELPERS FOR RENDER ---
   const inboxItems = allItems.filter((item) => !placements[item.id]);
+  
   const getItemForSlot = (slotId) => {
+    // Find key in placements object where value matches slotId
     const itemId = Object.keys(placements).find((key) => placements[key] === slotId);
     return itemId ? allItems.find((i) => i.id === itemId) : null;
   };
 
-  if (loading) return <div className="page-container">Loading...</div>;
+  if (loading) return <div className="page-container">Loading planner...</div>;
 
-  const ItemComponent = ({ item, isOverlay, isInInbox, onClick }) => {
-    const height = isInInbox && !isOverlay ? "auto" : `${item.duration * ROW_HEIGHT - 4}px`;
-    const containerClass = isInInbox && !isOverlay ? "item-container inbox-item" : "item-container";
-
-    return (
-      <div
-        className={containerClass}
-        style={{
-          background: item.color,
-          borderLeft: `4px solid ${item.borderColor}`,
-          borderRadius: "4px",
-          height: height,
-          zIndex: 20,
-          position: "relative",
-          boxSizing: "border-box",
-          padding: isInInbox && !isOverlay ? "8px" : "5px",
-          display: "flex",
-          flexDirection: "column",
-          justifyContent: "center",
-          overflow: "hidden",
-        }}
-        onClick={onClick}
-      >
-        <div style={{ fontWeight: "bold", lineHeight: "1.2" }}>{item.name}</div>
-
-        {item.location && (
-          <div
-            style={{
-              fontSize: "0.75rem",
-              opacity: 0.8,
-              marginTop: "2px",
-              whiteSpace: "nowrap",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-            }}
-          >
-            📍 {item.location}
-          </div>
-        )}
-
-        <span
-          className="duration-badge"
-          style={{
-            fontSize: "0.7rem",
-            position: isInInbox && !isOverlay ? "static" : "absolute",
-            top: "2px",
-            right: "4px",
-            marginLeft: isInInbox && !isOverlay ? "auto" : "0",
-            marginTop: isInInbox && !isOverlay ? "5px" : "0",
-          }}
-        >
-          {item.duration}h
-        </span>
-
-        <button className="edit-btn" title="Edit" onPointerDown={(e) => e.stopPropagation()} onClick={(e) => openEditModal(item, e)}>
-          ✎
-        </button>
-
-        <button className="delete-btn" title="Delete" onPointerDown={(e) => e.stopPropagation()} onClick={(e) => handleDelete(item.id, e)}>
-          ✕
-        </button>
-      </div>
-    );
-  };
-
+  // --- MODAL COMPONENT (Internal) ---
   const renderModalForm = (onSubmit, title, cancelAction) => (
-    <div className="modal-overlay">
-      <div className="modal-content">
+    <div className="modal-overlay" style={{
+        position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+        backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000
+    }}>
+      <div className="modal-content" style={{background: 'white', padding: '20px', borderRadius: '8px', width: '300px'}}>
         <h3>{title}</h3>
-        <form onSubmit={onSubmit}>
+        <form onSubmit={onSubmit} style={{display: 'flex', flexDirection: 'column', gap: '10px'}}>
           <label>Name</label>
           <input type="text" value={formData.name} required onChange={(e) => setFormData({ ...formData, name: e.target.value })} />
 
@@ -347,18 +406,21 @@ function WeekPlanner() {
           <input type="number" min="0.5" max="8" step="0.5" value={formData.duration} required onChange={(e) => setFormData({ ...formData, duration: e.target.value })} />
 
           <label>Color</label>
-          <div className="color-options">
+          <div className="color-options" style={{display: 'flex', gap: '5px'}}>
             {COLORS.map((c, i) => (
-              <div key={i} className={`color-swatch ${formData.colorIndex === i ? "selected" : ""}`} style={{ background: c.bg, borderColor: c.border }} onClick={() => setFormData({ ...formData, colorIndex: i })} />
+              <div 
+                key={i} 
+                style={{ 
+                    width: '24px', height: '24px', background: c.bg, border: `2px solid ${formData.colorIndex === i ? '#333' : c.border}`, 
+                    borderRadius: '50%', cursor: 'pointer' 
+                }} 
+                onClick={() => setFormData({ ...formData, colorIndex: i })} 
+              />
             ))}
           </div>
-          <div className="modal-actions">
-            <button type="button" className="btn-secondary" onClick={cancelAction}>
-              Cancel
-            </button>
-            <button type="submit" className="btn-primary">
-              Save
-            </button>
+          <div className="modal-actions" style={{display: 'flex', gap: '10px', marginTop: '10px'}}>
+            <button type="button" className="btn-secondary" onClick={cancelAction} style={{flex: 1}}>Cancel</button>
+            <button type="submit" className="btn-primary" style={{flex: 1}}>Save</button>
           </div>
         </form>
       </div>
@@ -373,87 +435,107 @@ function WeekPlanner() {
           display: "flex",
           gap: "20px",
           height: "calc(100vh - 120px)",
-          flexDirection: "column",
+          flexDirection: "row", // Ensure side-by-side layout
         }}
       >
-        {error && <div style={{ background: "#ffebee", color: "#c62828", padding: "10px", textAlign: "center", fontWeight: "bold" }}>{error}</div>}
+        {error && <div style={{ background: "#ffebee", color: "#c62828", padding: "10px", textAlign: "center", fontWeight: "bold", position: 'absolute', top: 0, width: '100%' }}>{error}</div>}
 
-        <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
-          <div className="planner-main" style={{ flex: 4, display: "flex", flexDirection: "column", overflowY: "auto" }}>
-            <div className="schedule-header">
-              <div className="header-cell">Time</div>
-              {DAYS.map((day) => (
-                <div key={day} className="header-cell">
-                  {day}
-                </div>
-              ))}
-            </div>
-
-            <div className="schedule-grid">
-              {HOURS.map((hour) => (
-                <React.Fragment key={hour}>
-                  <div className="time-label">{hour}:00</div>
-                  {DAYS.map((day) => {
-                    const slotId = `${day}-${hour}`;
-                    const itemInSlot = getItemForSlot(slotId);
-                    return (
-                      <Droppable key={slotId} id={slotId}>
-                        <div className="time-slot">
-                          {itemInSlot && (
-                            <Draggable id={itemInSlot.id} data={itemInSlot}>
-                              <ItemComponent item={itemInSlot} isOverlay={false} isInInbox={false} onClick={() => openEditModal(itemInSlot)} />
-                            </Draggable>
-                          )}
-                        </div>
-                      </Droppable>
-                    );
-                  })}
-                </React.Fragment>
-              ))}
-            </div>
-          </div>
-
-          <div className="planner-sidebar" style={{ flex: 1, display: "flex", flexDirection: "column", marginLeft: "20px", height: "100%" }}>
-            <Droppable id="inbox">
-              <div
-                style={{
-                  background: "white",
-                  padding: "20px",
-                  height: "100%",
-                  overflowY: "auto",
-                  borderRadius: "12px",
-                  boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
-                  display: "flex",
-                  flexDirection: "column",
-                }}
-              >
-                <div className="sidebar-header">
-                  <h3>
-                    Inbox <span style={{ fontSize: "0.8em", color: "#999", fontWeight: "normal" }}>({inboxItems.length})</span>
-                  </h3>
-                  <button className="add-btn-small" onClick={openCreateModal} title="Create Task">
-                    +
-                  </button>
-                </div>
-
-                <div style={{ display: "flex", flexDirection: "column", gap: "8px", flex: 1 }}>
-                  {inboxItems.map((item) => (
-                    <Draggable key={item.id} id={item.id} data={item}>
-                      <ItemComponent item={item} isOverlay={false} isInInbox={true} onClick={() => openEditModal(item)} />
-                    </Draggable>
-                  ))}
-
-                  {inboxItems.length === 0 && (
-                    <div style={{ marginTop: "20px", textAlign: "center", color: "#aaa", border: "2px dashed #eee", padding: "20px", borderRadius: "8px" }}>
-                      Inbox empty.
-                      <br />
-                      <small>Create a task or drag back here.</small>
-                    </div>
-                  )}
-                </div>
+        {/* --- MAIN CALENDAR GRID --- */}
+        <div className="planner-main" style={{ flex: 3, display: "flex", flexDirection: "column", overflowY: "auto", border: '1px solid #eee', borderRadius: '8px' }}>
+          <div className="schedule-header" style={{display: 'grid', gridTemplateColumns: '60px repeat(7, 1fr)', borderBottom: '1px solid #ddd', background: '#f9f9f9', position: 'sticky', top: 0, zIndex: 10}}>
+            <div className="header-cell" style={{padding: '10px', fontWeight: 'bold'}}>Time</div>
+            {DAYS.map((day) => (
+              <div key={day} className="header-cell" style={{padding: '10px', fontWeight: 'bold', textAlign: 'center', borderLeft: '1px solid #eee'}}>
+                {day}
               </div>
-            </Droppable>
+            ))}
           </div>
+
+          <div className="schedule-grid" style={{display: 'grid', gridTemplateColumns: '60px repeat(7, 1fr)'}}>
+            {HOURS.map((hour) => (
+              <React.Fragment key={hour}>
+                <div className="time-label" style={{padding: '5px', textAlign: 'right', color: '#888', borderBottom: '1px solid #eee', height: `${ROW_HEIGHT}px`, boxSizing: 'border-box'}}>{hour}:00</div>
+                {DAYS.map((day) => {
+                  const slotId = `${day}-${hour}`;
+                  const itemInSlot = getItemForSlot(slotId);
+                  return (
+                    <Droppable key={slotId} id={slotId}>
+                      <div className="time-slot" style={{borderLeft: '1px solid #eee', borderBottom: '1px solid #eee', height: `${ROW_HEIGHT}px`, position: 'relative', boxSizing: 'border-box'}}>
+                        {itemInSlot && (
+                          <Draggable id={itemInSlot.id} data={itemInSlot}>
+                            <ItemComponent 
+                                item={itemInSlot} 
+                                isOverlay={false} 
+                                isInInbox={false} 
+                                onClick={() => openEditModal(itemInSlot)} 
+                                onEdit={openEditModal}
+                                onDelete={handleDelete}
+                            />
+                          </Draggable>
+                        )}
+                      </div>
+                    </Droppable>
+                  );
+                })}
+              </React.Fragment>
+            ))}
+          </div>
+        </div>
+
+        {/* --- SIDEBAR (INBOX) --- */}
+        <div className="planner-sidebar" style={{ flex: 1, display: "flex", flexDirection: "column", height: "100%", minWidth: '250px' }}>
+          <Droppable id="inbox">
+            <div
+              style={{
+                background: "white",
+                padding: "20px",
+                height: "100%",
+                overflowY: "auto",
+                borderRadius: "12px",
+                boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
+                display: "flex",
+                flexDirection: "column",
+                border: '1px solid #eee'
+              }}
+            >
+              <div className="sidebar-header" style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px'}}>
+                <h3 style={{margin: 0}}>
+                  Inbox <span style={{ fontSize: "0.8em", color: "#999", fontWeight: "normal" }}>({inboxItems.length})</span>
+                </h3>
+                <button 
+                    className="add-btn-small" 
+                    onClick={openCreateModal} 
+                    title="Create Task"
+                    style={{background: '#4CAF50', color: 'white', border: 'none', width: '30px', height: '30px', borderRadius: '50%', cursor: 'pointer', fontSize: '1.2rem'}}
+                >
+                  +
+                </button>
+              </div>
+
+              <div style={{ display: "flex", flexDirection: "column", gap: "8px", flex: 1 }}>
+                {inboxItems.map((item) => (
+                  <Draggable key={item.id} id={item.id} data={item}>
+                    <ItemComponent 
+                        item={item} 
+                        isOverlay={false} 
+                        isInInbox={true} 
+                        onClick={() => openEditModal(item)} 
+                        onEdit={openEditModal}
+                        onDelete={handleDelete}
+                    />
+                  </Draggable>
+                ))}
+
+                {inboxItems.length === 0 && (
+                  <div style={{ marginTop: "20px", textAlign: "center", color: "#aaa", border: "2px dashed #eee", padding: "20px", borderRadius: "8px" }}>
+                    Inbox empty.
+                    <br />
+                    <small>Create a task or drag from schedule.</small>
+                  </div>
+                )}
+              </div>
+            </div>
+          </Droppable>
         </div>
       </div>
 

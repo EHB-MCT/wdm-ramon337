@@ -2,12 +2,16 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { fetchUserProfile } from '../api/auth';
 
+/**
+ * ProfilePage
+ * Displays user information and calculated free time statistics.
+ */
 function ProfilePage() {
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Haal de rol op om te checken of we de knop moeten tonen
+  // Retrieve the role to check if we should show the admin button
   const userRole = localStorage.getItem('userRole');
 
   useEffect(() => {
@@ -33,7 +37,7 @@ function ProfilePage() {
   const handleLogout = () => {
     localStorage.removeItem('userToken');
     localStorage.removeItem('userUID');
-    localStorage.removeItem('userRole'); // Ook rol wissen
+    localStorage.removeItem('userRole'); // Clear role as well
     navigate('/');
     window.location.reload();
   };
@@ -43,7 +47,7 @@ function ProfilePage() {
 
   const prefs = user.initialPreferences || {};
 
-  // --- BEREKENING: VRIJE TIJD ---
+  // --- CALCULATION: FREE TIME ---
   const totalHours = 168;
   const weeklySleep = (prefs.sleepHours || 8) * 7;
   const weeklyWork = prefs.workHours || 40;
@@ -56,7 +60,7 @@ function ProfilePage() {
   return (
     <div className="page-container">
       
-      {/* HEADER MET NAAM & EMAIL */}
+      {/* HEADER WITH NAME & EMAIL */}
       <div className="profile-header">
         <div className="avatar-placeholder">
           {user.email.charAt(0).toUpperCase()}
@@ -73,7 +77,7 @@ function ProfilePage() {
 
       <div className="profile-grid">
         
-        {/* KOLOM 1: LIFESTYLE STATS */}
+        {/* COLUMN 1: LIFESTYLE STATS */}
         <div className="profile-card">
           <h3>⚡ Lifestyle Settings</h3>
           
@@ -105,7 +109,7 @@ function ProfilePage() {
           </div>
         </div>
 
-        {/* KOLOM 2: HOBBIES & INFO & ADMIN */}
+        {/* COLUMN 2: HOBBIES & INFO & ADMIN */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
             
             <div className="profile-card">
@@ -138,7 +142,7 @@ function ProfilePage() {
                 </div>
             </div>
 
-            {/* --- NIEUWE ADMIN KNOP (ALLEEN VOOR ADMINS) --- */}
+            {/* --- ADMIN BUTTON (ONLY FOR ADMINS) --- */}
             {userRole === 'admin' && (
               <div className="profile-card" style={{ borderTop: '4px solid #ff9800', background: '#fff3e0' }}>
                 <h3 style={{ color: '#e65100', marginTop: 0 }}>👮‍♂️ Admin Zone</h3>
@@ -164,7 +168,7 @@ function ProfilePage() {
                 </button>
               </div>
             )}
-            {/* --- EINDE ADMIN KNOP --- */}
+            {/* --- END ADMIN BUTTON --- */}
 
         </div>
 

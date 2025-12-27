@@ -1,6 +1,11 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
+/**
+ * AdminPage
+ * Displays an overview of all users and events.
+ * Allows the admin to monitor activity and reset the database.
+ */
 function AdminPage() {
   const [users, setUsers] = useState([]);
   const [events, setEvents] = useState([]);
@@ -10,6 +15,7 @@ function AdminPage() {
 
   const navigate = useNavigate();
 
+  // Fetch all admin data on component mount
   const fetchData = async () => {
     try {
       const token = localStorage.getItem("userToken");
@@ -33,6 +39,7 @@ function AdminPage() {
     fetchData();
   }, []);
 
+  // Handle database reset (The "Nuke" button)
   const handleReset = async () => {
     if (!window.confirm("Are you sure? This will wipe the entire database.")) return;
     const token = localStorage.getItem("userToken");
@@ -53,6 +60,7 @@ function AdminPage() {
     return events.filter((e) => e.userId === uid).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
   };
 
+  // Reconstruct the user's schedule based on placements and task data
   const reconstructSchedule = (user) => {
     if (!user.placements) return {};
 
@@ -63,7 +71,7 @@ function AdminPage() {
       let name = "Activity";
       let location = "";
 
-      // 1. Check of het een custom task is uit de DB
+      // 1. Check if it is a custom task from the DB
       const dbTask = user.customTasks && user.customTasks.find((t) => t.id === itemId);
 
       if (itemId.startsWith("work")) {
@@ -77,11 +85,11 @@ function AdminPage() {
           location = user.initialPreferences.hobbies[hobbyIndex].location;
         }
       } else if (dbTask) {
-        // 👇 HIER HALEN WE DE DATA UIT DE DATABASE
+        // Retrieve data directly from the database object
         name = dbTask.name;
         location = dbTask.location;
       } else {
-        // Fallback naar logs
+        // Fallback to logs if not found in current state
         const creationLog = userEvents.find((e) => (e.eventType === "TASK_CREATED" || e.eventType === "TASK_SCHEDULED") && e.eventData && (e.eventData.itemId === itemId || e.eventData.name === itemId));
         if (creationLog && creationLog.eventData) {
           name = creationLog.eventData.name || "Custom Task";
@@ -95,6 +103,7 @@ function AdminPage() {
     return schedule;
   };
 
+  // Calculate confidence score based on user activity
   const calculateDataConfidence = (userLog) => {
     if (!userLog || userLog.length === 0) {
       return { score: "LOW", label: "No Data", color: "#bdbdbd", desc: "User has never interacted." };
@@ -118,6 +127,7 @@ function AdminPage() {
     return { score: "MED", label: "⚠️ STALE", color: "#fff59d", desc: `Last active ${Math.round(hoursSinceActive)} hours ago.` };
   };
 
+  // Determine current status based on schedule
   const getCurrentStatus = (schedule) => {
     const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
     const now = new Date();
@@ -134,6 +144,7 @@ function AdminPage() {
     return { status: "FREE", activity: "Free Time", location: "Home?" };
   };
 
+  // Render the modal details for a selected user
   const renderUserDetail = () => {
     if (!selectedUser) return null;
 
@@ -337,6 +348,7 @@ function AdminPage() {
   );
 }
 
+// Inline Styles
 const styles = {
   th: { padding: "12px", borderBottom: "2px solid #ddd" },
   td: { padding: "12px" },

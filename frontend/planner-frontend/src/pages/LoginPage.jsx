@@ -1,6 +1,10 @@
 import React from 'react';
 import LoginForm from '../components/LoginForm';
 
+/**
+ * LoginPage
+ * Wrapper page for the LoginForm component.
+ */
 function LoginPage() {
   return (
     <div style={{ marginTop: '50px' }}>
