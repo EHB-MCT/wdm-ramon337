@@ -1,0 +1,31 @@
+version: '3.8'
+
+services:
+  api:
+    build: ./backend
+    ports:
+      - "8080:8080"
+    depends_on:
+      - mongo
+    env_file:
+      - .env  # Hierdoor kent de API nu 'JWT_SECRET' en 'MONGO_URI'
+    environment:
+      # Zorg dat de node app de juiste URI pakt
+      - MONGO_URI=${MONGO_URI}
+      - JWT_SECRET=${JWT_SECRET}
+
+  mongo:
+    image: mongo
+    ports:
+      - "27017:27017"
+    env_file:
+      - .env
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD}
+      MONGO_INITDB_DATABASE: ${MONGO_DATABASE}
+    volumes:
+      - mongo-data:/data/db
+
+volumes:
+  mongo-data:
