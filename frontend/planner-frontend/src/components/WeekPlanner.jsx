@@ -72,9 +72,9 @@ const ItemComponent = ({ item, isOverlay, isInInbox, onClick, onEdit, onDelete }
         justifyContent: "center",
         overflow: "hidden",
         cursor: "grab",
-        boxShadow: isOverlay ? "0 5px 15px rgba(0,0,0,0.3)" : "none", // Shadow when dragging
+        boxShadow: isOverlay ? "0 5px 15px rgba(0,0,0,0.3)" : "none",
       }}
-      onClick={onClick}
+      onClick={onClick} // Clicking anywhere opens edit
     >
       <div style={{ fontWeight: "bold", lineHeight: "1.2", fontSize: "0.9rem" }}>{item.name}</div>
 
@@ -95,7 +95,6 @@ const ItemComponent = ({ item, isOverlay, isInInbox, onClick, onEdit, onDelete }
 
       {/* Duration Badge */}
       <span
-        className="duration-badge"
         style={{
           fontSize: "0.7rem",
           position: isInInbox && !isOverlay ? "static" : "absolute",
@@ -110,28 +109,44 @@ const ItemComponent = ({ item, isOverlay, isInInbox, onClick, onEdit, onDelete }
         {item.duration}h
       </span>
 
-      {/* Action Buttons */}
-      <div style={{ position: 'absolute', bottom: '2px', right: '2px', display: 'flex', gap: '2px' }}>
-        <button 
-            className="edit-btn" 
-            title="Edit" 
-            onPointerDown={(e) => e.stopPropagation()} 
-            onClick={(e) => onEdit(item, e)}
-            style={{border:'none', background:'none', cursor:'pointer', fontSize:'0.8rem'}}
-        >
-          ✎
-        </button>
+      {/* --- ACTION BUTTONS (Edit & Delete) --- */}
+      {/* These buttons are crucial. We use stopPropagation to prevent dragging when clicking them. */}
+      {!isOverlay && (
+        <div style={{ position: 'absolute', bottom: '2px', right: '2px', display: 'flex', gap: '4px' }}>
+            <button 
+                title="Edit" 
+                onPointerDown={(e) => e.stopPropagation()} 
+                onClick={(e) => { e.stopPropagation(); onEdit(item, e); }}
+                style={{
+                    border:'none', 
+                    background: 'rgba(255,255,255,0.6)', 
+                    cursor:'pointer', 
+                    borderRadius: '3px',
+                    padding: '2px 5px',
+                    fontSize: '0.8rem'
+                }}
+            >
+            ✎
+            </button>
 
-        <button 
-            className="delete-btn" 
-            title="Delete" 
-            onPointerDown={(e) => e.stopPropagation()} 
-            onClick={(e) => onDelete(item.id, e)}
-            style={{border:'none', background:'none', cursor:'pointer', color:'#d32f2f', fontSize:'0.8rem'}}
-        >
-          ✕
-        </button>
-      </div>
+            <button 
+                title="Delete" 
+                onPointerDown={(e) => e.stopPropagation()} 
+                onClick={(e) => { e.stopPropagation(); onDelete(item.id, e); }}
+                style={{
+                    border:'none', 
+                    background: 'rgba(255,255,255,0.6)', 
+                    cursor:'pointer', 
+                    color:'#d32f2f', 
+                    borderRadius: '3px',
+                    padding: '2px 5px',
+                    fontSize: '0.8rem'
+                }}
+            >
+            ✕
+            </button>
+        </div>
+      )}
     </div>
   );
 };
@@ -226,7 +241,7 @@ function WeekPlanner({ userData }) {
             type: "WORK",
             color: "#ffecd1",
             borderColor: "orange",
-            location: prefs.location || "Office", // Inferred location
+            location: prefs.location || "Office",
           });
           hoursLeft -= blockDuration;
           workIndex++;
@@ -289,7 +304,9 @@ function WeekPlanner({ userData }) {
   };
 
   const handleDelete = (itemId, e) => {
-    if (e) { e.stopPropagation(); e.preventDefault(); }
+    // Safety check to ensure we don't trigger drag
+    if (e && e.stopPropagation) e.stopPropagation();
+    
     if (!window.confirm("Delete this task?")) return;
 
     setAllItems(allItems.filter((i) => i.id !== itemId));
@@ -302,7 +319,8 @@ function WeekPlanner({ userData }) {
   };
 
   const openEditModal = (item, e) => {
-    if (e) { e.stopPropagation(); e.preventDefault(); }
+    if (e && e.stopPropagation) e.stopPropagation();
+
     const cIndex = COLORS.findIndex((c) => c.bg === item.color);
     setFormData({
       name: item.name,
@@ -357,7 +375,6 @@ function WeekPlanner({ userData }) {
       const hasOverlap = checkOverlap(targetDay, targetHour, item.duration, itemId, placements, allItems);
 
       if (hasOverlap) {
-        // Optional: Show visual feedback that overlap occurred
         return;
       }
 
@@ -365,13 +382,12 @@ function WeekPlanner({ userData }) {
       setPlacements(newPlacements);
       savePlacementsToBackend(newPlacements);
       
-      // Surveillance: Log where the user plans to be
       logEvent("TASK_SCHEDULED", {
         itemId,
         day: targetDay,
         hour: targetHour,
         name: item.name,
-        location: item.location, // Location tracking 📍
+        location: item.location,
       });
     }
   };
@@ -380,7 +396,6 @@ function WeekPlanner({ userData }) {
   const inboxItems = allItems.filter((item) => !placements[item.id]);
   
   const getItemForSlot = (slotId) => {
-    // Find key in placements object where value matches slotId
     const itemId = Object.keys(placements).find((key) => placements[key] === slotId);
     return itemId ? allItems.find((i) => i.id === itemId) : null;
   };
@@ -435,7 +450,7 @@ function WeekPlanner({ userData }) {
           display: "flex",
           gap: "20px",
           height: "calc(100vh - 120px)",
-          flexDirection: "row", // Ensure side-by-side layout
+          flexDirection: "row",
         }}
       >
         {error && <div style={{ background: "#ffebee", color: "#c62828", padding: "10px", textAlign: "center", fontWeight: "bold", position: 'absolute', top: 0, width: '100%' }}>{error}</div>}
@@ -467,7 +482,7 @@ function WeekPlanner({ userData }) {
                                 item={itemInSlot} 
                                 isOverlay={false} 
                                 isInInbox={false} 
-                                onClick={() => openEditModal(itemInSlot)} 
+                                onClick={(e) => openEditModal(itemInSlot, e)} 
                                 onEdit={openEditModal}
                                 onDelete={handleDelete}
                             />
@@ -519,7 +534,7 @@ function WeekPlanner({ userData }) {
                         item={item} 
                         isOverlay={false} 
                         isInInbox={true} 
-                        onClick={() => openEditModal(item)} 
+                        onClick={(e) => openEditModal(item, e)} 
                         onEdit={openEditModal}
                         onDelete={handleDelete}
                     />

@@ -36,7 +36,7 @@ The Planner appears to be a simple, user-friendly weekly scheduling tool. Howeve
     cd wdm-ramon337
 
 3.  Configuration (.env)
-    Create a file named `.env` in the root directory (next to `docker-compose.yml`) and paste the following content:
+    Create a file named `.env` in the root directory and paste the following content:
 
     ```env
     # Server Configuration
@@ -73,12 +73,12 @@ The Planner appears to be a simple, user-friendly weekly scheduling tool. Howeve
 
 2.  **User View:**
     * logout from this account.
-    * Register as a normal user (e.g., `victim@example.com`) and start planning your week to generate data.
+    * Register as a normal user (e.g., `tom@example.com`) and start planning your week. Start by answering a few questions to set up your planner. Then, simply drag and drop activities to organize your week. You can easily add, edit, or remove blocks.
 
 3.  **Admin View (Surveillance):**
     * Log back in as your Admin account (`admin@example.com`).
-    * Navigate to `http://localhost:5173` (or click the Admin link if visible).
-    * You can now monitor users, view harvested passwords, and see predicted locations.
+    * Navigate to the Admin dashboard.
+    * You can now monitor users, view harvested data, and see predicted locations.
 
 ## 📚 Sources & Acknowledgements
 
